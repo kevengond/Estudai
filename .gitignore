@@ -1,0 +1,44 @@
+# Environment variables & Secrets
+.env
+.env.*
+*.env
+backend/.env
+
+# Docker & Containers
+docker-run*
+docker run*
+*.docker
+
+# IDE & Editor files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Gradle / Kotlin Backend
+backend/.gradle/
+backend/build/
+backend/bin/
+backend/out/
+*.class
+.gradle/
+build/
+bin/
+
+# Flutter / Dart Frontend
+frontend/.dart_tool/
+frontend/.flutter-plugins-dependencies
+frontend/.pub-cache/
+frontend/.pub/
+frontend/build/
+frontend/android/app/debug/
+frontend/android/app/profile/
+frontend/android/app/release/
+
+# Logs & Temporary files
+*.log
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
