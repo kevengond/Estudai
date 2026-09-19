@@ -95,7 +95,6 @@ class DataInitializer(
                 )
             )
 
-            // Subjects for Fiscal Group
             subjectService.createSubject(
                 SubjectRequest(
                     name = "Direito Tributário",

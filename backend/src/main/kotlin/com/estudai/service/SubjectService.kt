@@ -77,8 +77,35 @@ class SubjectService(
         val subject = subjectRepository.findById(id)
             .orElseThrow { NoSuchElementException("Disciplina não encontrada com ID: $id") }
         subject.active = !subject.active
-        val updated = subjectRepository.save(subject)
-        return toResponse(updated)
+
+        val groupId = subject.group?.id
+        val allGroupSubjects = if (groupId != null) {
+            subjectRepository.findAllByGroupIdOrderByCycleOrderAsc(groupId)
+        } else {
+            subjectRepository.findAllByOrderByCycleOrderAsc()
+        }
+
+        if (subject.active) {
+            // Reativada: vai para o final da fila de matérias ativas
+            val activeSubjects = allGroupSubjects.filter { it.active && it.id != subject.id }
+            subject.cycleOrder = activeSubjects.size + 1
+            subjectRepository.save(subject)
+        } else {
+            // Desativada: as ativas restantes são renumeradas 1..N e a desativada vai para o final
+            subjectRepository.save(subject)
+            val activeSubjects = allGroupSubjects.filter { it.active && it.id != subject.id }
+            activeSubjects.forEachIndexed { index, s ->
+                s.cycleOrder = index + 1
+                subjectRepository.save(s)
+            }
+            val inactiveSubjects = allGroupSubjects.filter { !it.active || it.id == subject.id }
+            inactiveSubjects.forEachIndexed { index, s ->
+                s.cycleOrder = activeSubjects.size + index + 1
+                subjectRepository.save(s)
+            }
+        }
+
+        return toResponse(subject)
     }
 
     @Transactional
@@ -86,20 +113,47 @@ class SubjectService(
         if (!subjectRepository.existsById(id)) {
             throw NoSuchElementException("Disciplina não encontrada com ID: $id")
         }
+        val subject = subjectRepository.findById(id).orElse(null)
+        val groupId = subject?.group?.id
         // Delete related sessions
         val sessions = studySessionRepository.findBySubjectIdOrderBySessionDateDesc(id)
         sessions.forEach { studySessionRepository.delete(it) }
         subjectRepository.deleteById(id)
+
+        // Renumerar ativas restantes para manter sequência perfeita
+        val remainingActive = if (groupId != null) {
+            subjectRepository.findAllByGroupIdAndActiveTrueOrderByCycleOrderAsc(groupId)
+        } else {
+            subjectRepository.findAllByActiveTrueOrderByCycleOrderAsc()
+        }
+        remainingActive.forEachIndexed { index, s ->
+            s.cycleOrder = index + 1
+            subjectRepository.save(s)
+        }
     }
 
     @Transactional
     fun reorderCycle(request: ReorderCycleRequest): List<SubjectResponse> {
+        val activeIdsSet = request.subjectIds.toSet()
         request.subjectIds.forEachIndexed { index, id ->
             subjectRepository.findById(id).ifPresent {
                 it.cycleOrder = index + 1
                 subjectRepository.save(it)
             }
         }
+
+        // Renumerar as matérias inativas que não foram reordenadas para depois das ativas
+        val allSubjects = if (request.groupId != null) {
+            subjectRepository.findAllByGroupIdOrderByCycleOrderAsc(request.groupId)
+        } else {
+            subjectRepository.findAllByOrderByCycleOrderAsc()
+        }
+        val inactiveSubjects = allSubjects.filter { it.id !in activeIdsSet }
+        inactiveSubjects.forEachIndexed { index, s ->
+            s.cycleOrder = request.subjectIds.size + index + 1
+            subjectRepository.save(s)
+        }
+
         return getAllSubjects(groupId = request.groupId)
     }
 

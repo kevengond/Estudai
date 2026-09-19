@@ -93,6 +93,9 @@ class StudyProvider extends ChangeNotifier {
         fetchDashboardStats(),
         fetchSessions(),
       ]);
+      if (_selectedSubject == null && _suggestion != null) {
+        syncWithCurrentSuggestion();
+      }
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -132,6 +135,9 @@ class StudyProvider extends ChangeNotifier {
         fetchDashboardStats(),
         fetchSessions(),
       ]);
+      if (!isTimerRunning && _suggestion != null) {
+        syncWithCurrentSuggestion();
+      }
     } catch (e) {
       _errorMessage = e.toString();
     } finally {
@@ -275,7 +281,7 @@ class StudyProvider extends ChangeNotifier {
   }
 
   // --- Pre-fill from Suggestion ---
-  void prepareFromSuggestion(NextStudySuggestion sugg) {
+  void prepareFromSuggestion(NextStudySuggestion sugg, {bool resetTimerOnPrepare = true}) {
     if (sugg.suggestedSubject != null) {
       final match = _subjects.firstWhere(
         (s) => s.id == sugg.suggestedSubject!.id,
@@ -292,12 +298,57 @@ class StudyProvider extends ChangeNotifier {
       _materialTitle = sugg.suggestedMaterialOrTopic ?? '';
       _pageStopped = sugg.suggestedPage ?? 0;
       _pagesReadCount = 0;
+      _topic = '';
     } else {
       _topic = sugg.suggestedMaterialOrTopic ?? '';
+      if (_topic == 'Introdução / Bloco Inicial') _topic = '';
       _totalQuestions = sugg.suggestedQuestionsBatch ?? 20;
       _correctQuestions = 0;
+      _materialTitle = '';
+      _pageStopped = 0;
+      _pagesReadCount = 0;
     }
 
+    if (resetTimerOnPrepare) {
+      resetTimer();
+    }
+    notifyListeners();
+  }
+
+  void syncWithCurrentSuggestion({bool force = false}) {
+    if (_suggestion != null && (!isTimerRunning || force)) {
+      prepareFromSuggestion(_suggestion!, resetTimerOnPrepare: false);
+    }
+  }
+
+  void prepareFromSubject(Subject subject) {
+    _selectedSubject = subject;
+    // Buscar última sessão registrada nesta matéria para recuperar checkpoint
+    final lastSession = _sessions.where((s) => s.subjectId == subject.id).firstOrNull;
+    if (lastSession != null) {
+      _selectedStudyType = lastSession.studyType;
+      if (lastSession.studyType == StudyType.pdf) {
+        _materialTitle = lastSession.materialTitle ?? lastSession.topic ?? '';
+        _pageStopped = lastSession.pageStopped ?? 0;
+        _pagesReadCount = 0;
+        _topic = '';
+      } else {
+        _topic = lastSession.topic ?? '';
+        _totalQuestions = lastSession.totalQuestions ?? 20;
+        _correctQuestions = 0;
+        _materialTitle = '';
+        _pageStopped = 0;
+        _pagesReadCount = 0;
+      }
+    } else {
+      _selectedStudyType = StudyType.questions;
+      _topic = '';
+      _totalQuestions = 20;
+      _correctQuestions = 0;
+      _materialTitle = '';
+      _pageStopped = 0;
+      _pagesReadCount = 0;
+    }
     resetTimer();
     notifyListeners();
   }
@@ -352,6 +403,44 @@ class StudyProvider extends ChangeNotifier {
         fetchDashboardStats(),
         fetchSessions(),
       ]);
+
+      // Ciclo X -> Y -> Z: após salvar, já deixa o formulário pré-preenchido
+      // com a próxima matéria do ciclo e o último conteúdo registrado nela
+      // (respeitando a ordem definida na aba Ciclo).
+      final next = _suggestion;
+      final nextSubject = next?.suggestedSubject;
+      if (next != null && nextSubject != null) {
+        try {
+          final match = _subjects.firstWhere(
+            (s) => s.id == nextSubject.id,
+            orElse: () => nextSubject,
+          );
+          _selectedSubject = match;
+        } catch (_) {
+          _selectedSubject = nextSubject;
+        }
+        final nextType = next.suggestionType;
+        if (nextType != null) {
+          _selectedStudyType = nextType;
+        }
+        if (nextType == StudyType.pdf) {
+          _materialTitle = next.suggestedMaterialOrTopic ?? '';
+          _pageStopped = next.suggestedPage ?? 0;
+          _pagesReadCount = 0;
+          _topic = '';
+        } else if (nextType == StudyType.questions) {
+          _topic = next.suggestedMaterialOrTopic ?? '';
+          // Se era "Introdução / Bloco Inicial" (matéria nova), limpa para digitar;
+          // caso contrário mantém o último tópico como ponto de partida.
+          if (_topic == 'Introdução / Bloco Inicial') _topic = '';
+          _totalQuestions = next.suggestedQuestionsBatch ?? 20;
+          _correctQuestions = 0;
+          _materialTitle = '';
+          _pageStopped = 0;
+          _pagesReadCount = 0;
+        }
+        _notes = '';
+      }
 
       _isLoading = false;
       notifyListeners();
@@ -497,7 +586,9 @@ class StudyProvider extends ChangeNotifier {
       if (index >= 0) {
         _subjects[index] = updated;
       }
+      await fetchSubjects();
       await fetchSuggestion();
+      syncWithCurrentSuggestion();
       notifyListeners();
       return true;
     } catch (e) {
@@ -518,6 +609,7 @@ class StudyProvider extends ChangeNotifier {
       await fetchSuggestion();
       await fetchDashboardStats();
       await fetchGroups();
+      syncWithCurrentSuggestion();
       _isLoading = false;
       notifyListeners();
       return true;
@@ -535,6 +627,7 @@ class StudyProvider extends ChangeNotifier {
     try {
       _subjects = await ApiService.reorderCycle(subjectIds, groupId: _selectedGroup?.id);
       await fetchSuggestion();
+      syncWithCurrentSuggestion();
     } catch (e) {
       _errorMessage = e.toString();
     } finally {

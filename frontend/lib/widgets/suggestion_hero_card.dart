@@ -159,7 +159,7 @@ class SuggestionHeroCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         isResume
-                            ? 'CONTINUAR DE ONDE PAROU'
+                            ? 'PRÓXIMA NO CICLO • DE ONDE PAROU'
                             : 'SUGESTÃO DO CICLO',
                         style: const TextStyle(
                           color: Colors.white,
