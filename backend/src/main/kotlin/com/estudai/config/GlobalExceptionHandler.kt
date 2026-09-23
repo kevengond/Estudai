@@ -29,6 +29,38 @@ class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error)
     }
 
+    @ExceptionHandler(org.springframework.security.authentication.BadCredentialsException::class)
+    fun handleBadCredentials(ex: org.springframework.security.authentication.BadCredentialsException): ResponseEntity<ErrorResponse> {
+        val error = ErrorResponse(
+            status = HttpStatus.UNAUTHORIZED.value(),
+            error = "Unauthorized",
+            message = ex.message ?: "Credenciais inválidas"
+        )
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error)
+    }
+
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException::class)
+    fun handleAccessDenied(ex: org.springframework.security.access.AccessDeniedException): ResponseEntity<ErrorResponse> {
+        val error = ErrorResponse(
+            status = HttpStatus.FORBIDDEN.value(),
+            error = "Forbidden",
+            message = "Acesso negado."
+        )
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error)
+    }
+
+    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException::class)
+    fun handleValidationErrors(ex: org.springframework.web.bind.MethodArgumentNotValidException): ResponseEntity<ErrorResponse> {
+        val firstError = ex.bindingResult.fieldErrors.firstOrNull()
+        val message = firstError?.defaultMessage ?: "Dados inválidos fornecidos."
+        val error = ErrorResponse(
+            status = HttpStatus.BAD_REQUEST.value(),
+            error = "Bad Request",
+            message = message
+        )
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error)
+    }
+
     @ExceptionHandler(IllegalArgumentException::class, IllegalStateException::class)
     fun handleBadRequest(ex: RuntimeException): ResponseEntity<ErrorResponse> {
         val error = ErrorResponse(

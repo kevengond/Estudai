@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/study_provider.dart';
 import 'package:frontend/screens/cycle_screen.dart';
 import 'package:frontend/screens/dashboard_screen.dart';
@@ -85,7 +86,78 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             onPressed: widget.onToggleTheme,
             tooltip: widget.isDarkMode ? 'Tema Claro' : 'Tema Escuro',
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 4),
+          Consumer<AuthProvider>(
+            builder: (context, auth, _) {
+              final user = auth.currentUser;
+              final initials = (user != null && user.name.isNotEmpty)
+                  ? user.name.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
+                  : 'U';
+
+              return PopupMenuButton<String>(
+                tooltip: 'Perfil do Usuário',
+                offset: const Offset(0, 48),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                child: CircleAvatar(
+                  radius: 16,
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                  child: Text(
+                    initials,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                ),
+                itemBuilder: (context) => [
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user?.name ?? 'Usuário',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                        Text(
+                          '@${user?.username ?? ""}',
+                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        ),
+                        if (user?.email.isNotEmpty == true)
+                          Text(
+                            user!.email,
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                        if (user?.phone != null && user!.phone!.isNotEmpty)
+                          Text(
+                            user.phone!,
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuDivider(),
+                  PopupMenuItem<String>(
+                    value: 'logout',
+                    child: const Row(
+                      children: [
+                        Icon(Icons.logout_rounded, color: Colors.red, size: 20),
+                        SizedBox(width: 10),
+                        Text('Sair', style: TextStyle(color: Colors.red)),
+                      ],
+                    ),
+                  ),
+                ],
+                onSelected: (value) {
+                  if (value == 'logout') {
+                    context.read<AuthProvider>().logout();
+                  }
+                },
+              );
+            },
+          ),
+          const SizedBox(width: 12),
         ],
       ),
       body: Row(

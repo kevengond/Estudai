@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/providers/auth_provider.dart';
 import 'package:frontend/providers/study_provider.dart';
+import 'package:frontend/screens/login_screen.dart';
 import 'package:frontend/screens/main_navigation_screen.dart';
 import 'package:frontend/theme/app_theme.dart';
 import 'package:provider/provider.dart';
@@ -9,7 +11,12 @@ void main() {
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => StudyProvider()),
+        ChangeNotifierProvider(
+          create: (_) => AuthProvider()..checkAuthStatus(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => StudyProvider(),
+        ),
       ],
       child: const EstudaiApp(),
     ),
@@ -46,9 +53,47 @@ class _EstudaiAppState extends State<EstudaiApp> {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: _themeMode,
-      home: MainNavigationScreen(
-        onToggleTheme: _toggleTheme,
-        isDarkMode: isDark,
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          if (auth.isLoading) {
+            return Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 64,
+                      height: 64,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF4F46E5),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(
+                        Icons.school_rounded,
+                        size: 36,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    const CircularProgressIndicator(
+                      color: Color(0xFF4F46E5),
+                      strokeWidth: 3,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }
+
+          if (auth.isAuthenticated) {
+            return MainNavigationScreen(
+              onToggleTheme: _toggleTheme,
+              isDarkMode: isDark,
+            );
+          }
+
+          return const LoginScreen();
+        },
       ),
     );
   }

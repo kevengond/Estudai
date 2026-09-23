@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:frontend/models/auth_model.dart';
 import 'package:frontend/models/cycle_suggestion.dart';
 import 'package:frontend/models/dashboard_stats.dart';
 import 'package:frontend/models/study_group.dart';
@@ -8,6 +9,14 @@ import 'package:frontend/models/subject.dart';
 import 'package:http/http.dart' as http;
 
 class ApiService {
+  static String? _token;
+
+  static void setToken(String? token) {
+    _token = token;
+  }
+
+  static String? get token => _token;
+
   static String get baseUrl {
     if (kIsWeb) {
       return 'http://localhost:8080/api';
@@ -15,10 +24,84 @@ class ApiService {
     return 'http://10.0.2.2:8080/api';
   }
 
+  static Map<String, String> get _headers {
+    final headers = {'Content-Type': 'application/json; charset=UTF-8'};
+    if (_token != null && _token!.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $_token';
+    }
+    return headers;
+  }
+
+  // --- Auth ---
+  static Future<AuthResponse> login(String login, String password) async {
+    final uri = Uri.parse('$baseUrl/auth/login');
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: jsonEncode({
+        'login': login,
+        'password': password,
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      final authResponse = AuthResponse.fromJson(data);
+      setToken(authResponse.token);
+      return authResponse;
+    } else {
+      String errorMessage = 'Falha no login';
+      try {
+        final errJson = jsonDecode(utf8.decode(response.bodyBytes));
+        if (errJson['message'] != null) {
+          errorMessage = errJson['message'];
+        }
+      } catch (_) {}
+      throw Exception(errorMessage);
+    }
+  }
+
+  static Future<AuthResponse> register(Map<String, dynamic> data) async {
+    final uri = Uri.parse('$baseUrl/auth/register');
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      body: jsonEncode(data),
+    );
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
+      final resData = jsonDecode(utf8.decode(response.bodyBytes));
+      final authResponse = AuthResponse.fromJson(resData);
+      setToken(authResponse.token);
+      return authResponse;
+    } else {
+      String errorMessage = 'Falha no cadastro';
+      try {
+        final errJson = jsonDecode(utf8.decode(response.bodyBytes));
+        if (errJson['message'] != null) {
+          errorMessage = errJson['message'];
+        }
+      } catch (_) {}
+      throw Exception(errorMessage);
+    }
+  }
+
+  static Future<User> getMe() async {
+    final uri = Uri.parse('$baseUrl/auth/me');
+    final response = await http.get(uri, headers: _headers);
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(utf8.decode(response.bodyBytes));
+      return User.fromJson(data);
+    } else {
+      throw Exception('Sessão expirada ou não autenticado');
+    }
+  }
+
   // --- Study Groups (Concursos / Subgrupos) ---
   static Future<List<StudyGroup>> getGroups({bool activeOnly = false}) async {
     final uri = Uri.parse('$baseUrl/groups?activeOnly=$activeOnly');
-    final response = await http.get(uri);
+    final response = await http.get(uri, headers: _headers);
 
     if (response.statusCode == 200) {
       final List<dynamic> list = jsonDecode(utf8.decode(response.bodyBytes));
@@ -32,7 +115,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/groups');
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      headers: _headers,
       body: jsonEncode(data),
     );
 
@@ -48,7 +131,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/groups/$id');
     final response = await http.put(
       uri,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      headers: _headers,
       body: jsonEncode(data),
     );
 
@@ -61,7 +144,7 @@ class ApiService {
 
   static Future<void> deleteGroup(int id) async {
     final uri = Uri.parse('$baseUrl/groups/$id');
-    final response = await http.delete(uri);
+    final response = await http.delete(uri, headers: _headers);
 
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw Exception('Falha ao remover subgrupo: ${response.statusCode}');
@@ -76,7 +159,7 @@ class ApiService {
       queryParams['groupId'] = groupId.toString();
     }
     final uri = Uri.parse('$baseUrl/subjects').replace(queryParameters: queryParams);
-    final response = await http.get(uri);
+    final response = await http.get(uri, headers: _headers);
 
     if (response.statusCode == 200) {
       final List<dynamic> list = jsonDecode(utf8.decode(response.bodyBytes));
@@ -90,7 +173,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/subjects');
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      headers: _headers,
       body: jsonEncode(data),
     );
 
@@ -106,7 +189,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/subjects/$id');
     final response = await http.put(
       uri,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      headers: _headers,
       body: jsonEncode(data),
     );
 
@@ -119,7 +202,7 @@ class ApiService {
 
   static Future<Subject> toggleActiveInCycle(int id) async {
     final uri = Uri.parse('$baseUrl/subjects/$id/toggle-cycle');
-    final response = await http.patch(uri);
+    final response = await http.patch(uri, headers: _headers);
 
     if (response.statusCode == 200) {
       return Subject.fromJson(jsonDecode(utf8.decode(response.bodyBytes)));
@@ -130,7 +213,7 @@ class ApiService {
 
   static Future<void> deleteSubject(int id) async {
     final uri = Uri.parse('$baseUrl/subjects/$id');
-    final response = await http.delete(uri);
+    final response = await http.delete(uri, headers: _headers);
 
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw Exception('Falha ao remover disciplina: ${response.statusCode}');
@@ -142,7 +225,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/subjects/reorder');
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      headers: _headers,
       body: jsonEncode({
         'subjectIds': subjectIds,
         'groupId': groupId,
@@ -162,7 +245,7 @@ class ApiService {
     final uri = subjectId != null
         ? Uri.parse('$baseUrl/sessions?subjectId=$subjectId')
         : Uri.parse('$baseUrl/sessions');
-    final response = await http.get(uri);
+    final response = await http.get(uri, headers: _headers);
 
     if (response.statusCode == 200) {
       final List<dynamic> list = jsonDecode(utf8.decode(response.bodyBytes));
@@ -177,7 +260,7 @@ class ApiService {
     final uri = Uri.parse('$baseUrl/sessions');
     final response = await http.post(
       uri,
-      headers: {'Content-Type': 'application/json; charset=UTF-8'},
+      headers: _headers,
       body: jsonEncode(sessionData),
     );
 
@@ -190,7 +273,7 @@ class ApiService {
 
   static Future<void> deleteSession(int id) async {
     final uri = Uri.parse('$baseUrl/sessions/$id');
-    final response = await http.delete(uri);
+    final response = await http.delete(uri, headers: _headers);
 
     if (response.statusCode != 204 && response.statusCode != 200) {
       throw Exception('Falha ao excluir sessão: ${response.statusCode}');
@@ -203,7 +286,7 @@ class ApiService {
     final uri = groupId != null
         ? Uri.parse('$baseUrl/cycle/next-suggestion?groupId=$groupId')
         : Uri.parse('$baseUrl/cycle/next-suggestion');
-    final response = await http.get(uri);
+    final response = await http.get(uri, headers: _headers);
 
     if (response.statusCode == 200) {
       return NextStudySuggestion.fromJson(
@@ -219,7 +302,7 @@ class ApiService {
     final uri = groupId != null
         ? Uri.parse('$baseUrl/dashboard/stats?groupId=$groupId')
         : Uri.parse('$baseUrl/dashboard/stats');
-    final response = await http.get(uri);
+    final response = await http.get(uri, headers: _headers);
 
     if (response.statusCode == 200) {
       return DashboardStats.fromJson(

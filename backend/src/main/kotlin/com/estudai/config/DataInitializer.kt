@@ -3,13 +3,17 @@ package com.estudai.config
 import com.estudai.dto.CreateStudySessionRequest
 import com.estudai.dto.StudyGroupRequest
 import com.estudai.dto.SubjectRequest
+import com.estudai.model.Role
 import com.estudai.model.StudyType
+import com.estudai.model.User
 import com.estudai.repository.StudyGroupRepository
 import com.estudai.repository.SubjectRepository
+import com.estudai.repository.UserRepository
 import com.estudai.service.StudyGroupService
 import com.estudai.service.StudySessionService
 import com.estudai.service.SubjectService
 import org.springframework.boot.CommandLineRunner
+import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Component
 import java.time.LocalDateTime
 
@@ -19,10 +23,25 @@ class DataInitializer(
     private val studyGroupService: StudyGroupService,
     private val subjectRepository: SubjectRepository,
     private val subjectService: SubjectService,
-    private val studySessionService: StudySessionService
+    private val studySessionService: StudySessionService,
+    private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder
 ) : CommandLineRunner {
 
     override fun run(vararg args: String?) {
+        // Inicializar usuário administrador padrão se não houver usuários
+        if (userRepository.count() == 0L) {
+            val defaultAdmin = User(
+                name = "Administrador Estudai",
+                username = "admin",
+                email = "admin@estudai.com",
+                phone = "(11) 99999-9999",
+                passwordHash = passwordEncoder.encode("admin123"),
+                role = Role.ROLE_ADMIN
+            )
+            userRepository.save(defaultAdmin)
+        }
+
         if (studyGroupRepository.count() == 0L && subjectRepository.count() == 0L) {
             // Group 1: Concurso Polícia Federal
             val g1 = studyGroupService.createGroup(
