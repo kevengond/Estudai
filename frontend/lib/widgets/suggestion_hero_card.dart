@@ -3,23 +3,28 @@ import 'package:frontend/models/cycle_suggestion.dart';
 import 'package:frontend/models/study_session.dart';
 
 class SuggestionHeroCard extends StatelessWidget {
-  final NextStudySuggestion? suggestion;
-  final VoidCallback onStartStudy;
+  final NextStudySuggestion? sugestao;
+  final VoidCallback aoIniciarEstudo;
 
   const SuggestionHeroCard({
     super.key,
-    required this.suggestion,
-    required this.onStartStudy,
-  });
+    NextStudySuggestion? sugestao,
+    NextStudySuggestion? suggestion,
+    VoidCallback? aoIniciarEstudo,
+    VoidCallback? onStartStudy,
+  })  : sugestao = sugestao ?? suggestion,
+        aoIniciarEstudo = aoIniciarEstudo ?? onStartStudy ?? _funcaoVazia;
+
+  static void _funcaoVazia() {}
 
   @override
   Widget build(BuildContext context) {
-    final subject = suggestion?.suggestedSubject;
-    final isQuestions = suggestion?.suggestionType == StudyType.questions;
-    final isResume = suggestion?.isResumeLastContent ?? false;
+    final disciplina = sugestao?.disciplinaSugerida;
+    final ehQuestoes = sugestao?.tipoEstudoSugerido == TipoEstudo.questoes;
+    final ehRetomada = sugestao?.ehRetomadaUltimoConteudo ?? false;
 
-    // If no active subject in cycle
-    if (subject == null) {
+    // Se nenhuma matéria ativa no ciclo
+    if (disciplina == null) {
       return Container(
         width: double.infinity,
         decoration: BoxDecoration(
@@ -86,7 +91,7 @@ class SuggestionHeroCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             ElevatedButton.icon(
-              onPressed: onStartStudy,
+              onPressed: aoIniciarEstudo,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white,
                 foregroundColor: const Color(0xFF4F46E5),
@@ -112,8 +117,8 @@ class SuggestionHeroCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF4F46E5), // Indigo
-            Color(0xFF7C3AED), // Violet
+            Color(0xFF4F46E5), // Índigo
+            Color(0xFF7C3AED), // Violeta
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -132,7 +137,7 @@ class SuggestionHeroCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Badge
+            // Distintivo superior
             Wrap(
               spacing: 8,
               runSpacing: 6,
@@ -150,7 +155,7 @@ class SuggestionHeroCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isResume
+                        ehRetomada
                             ? Icons.bookmark_added_rounded
                             : Icons.play_circle_fill_rounded,
                         color: Colors.white,
@@ -158,7 +163,7 @@ class SuggestionHeroCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isResume
+                        ehRetomada
                             ? 'PRÓXIMA NO CICLO • DE ONDE PAROU'
                             : 'SUGESTÃO DO CICLO',
                         style: const TextStyle(
@@ -171,9 +176,9 @@ class SuggestionHeroCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (suggestion != null && suggestion!.cycleStatus.isNotEmpty)
+                if (sugestao != null && sugestao!.statusCiclo.isNotEmpty)
                   Text(
-                    suggestion!.cycleStatus,
+                    sugestao!.statusCiclo,
                     style: TextStyle(
                       color: Colors.white.withOpacity(0.85),
                       fontSize: 11,
@@ -184,9 +189,9 @@ class SuggestionHeroCard extends StatelessWidget {
             ),
             const SizedBox(height: 14),
             Text(
-              suggestion?.resumeMessage.isNotEmpty == true
-                  ? suggestion!.resumeMessage
-                  : subject.name,
+              sugestao?.mensagemRetomada.isNotEmpty == true
+                  ? sugestao!.mensagemRetomada
+                  : disciplina.nome,
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -196,7 +201,7 @@ class SuggestionHeroCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
             Text(
-              suggestion?.checkpointDetail ?? 'Pronto para iniciar a sessão',
+              sugestao?.detalhePontoParada ?? 'Pronto para iniciar a sessão',
               style: TextStyle(
                 color: Colors.white.withOpacity(0.9),
                 fontSize: 13,
@@ -220,7 +225,7 @@ class SuggestionHeroCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        isQuestions
+                        ehQuestoes
                             ? Icons.format_list_numbered_rounded
                             : Icons.menu_book_rounded,
                         color: Colors.white,
@@ -228,7 +233,7 @@ class SuggestionHeroCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        isQuestions ? 'Questões' : 'Leitura PDF',
+                        ehQuestoes ? 'Questões' : 'Leitura PDF',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 11,
@@ -239,7 +244,7 @@ class SuggestionHeroCard extends StatelessWidget {
                   ),
                 ),
                 ElevatedButton.icon(
-                  onPressed: onStartStudy,
+                  onPressed: aoIniciarEstudo,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,
                     foregroundColor: const Color(0xFF4F46E5),

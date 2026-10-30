@@ -2,32 +2,32 @@ import 'package:flutter/material.dart';
 
 class StudyGroup {
   final int id;
-  final String name;
-  final String? description;
-  final String colorHex;
-  final bool active;
-  final int totalSubjects;
-  final int totalSessions;
-  final int totalStudySeconds;
-  final DateTime createdAt;
+  final String nome;
+  final String? descricao;
+  final String corHex;
+  final bool ativo;
+  final int totalDisciplinas;
+  final int totalSessoes;
+  final int totalSegundosEstudo;
+  final DateTime criadoEm;
 
   StudyGroup({
     required this.id,
-    required this.name,
-    this.description,
-    required this.colorHex,
-    required this.active,
-    this.totalSubjects = 0,
-    this.totalSessions = 0,
-    this.totalStudySeconds = 0,
-    required this.createdAt,
+    required this.nome,
+    this.descricao,
+    required this.corHex,
+    required this.ativo,
+    this.totalDisciplinas = 0,
+    this.totalSessoes = 0,
+    this.totalSegundosEstudo = 0,
+    required this.criadoEm,
   });
 
-  Color get color {
+  Color get cor {
     try {
-      final hex = colorHex.replaceAll('#', '');
-      if (hex.length == 6) {
-        return Color(int.parse('FF$hex', radix: 16));
+      final codigoHexLimpo = corHex.replaceAll('#', '');
+      if (codigoHexLimpo.length == 6) {
+        return Color(int.parse('FF$codigoHexLimpo', radix: 16));
       }
     } catch (_) {}
     return const Color(0xFF6366F1);
@@ -36,14 +36,14 @@ class StudyGroup {
   factory StudyGroup.fromJson(Map<String, dynamic> json) {
     return StudyGroup(
       id: json['id'] as int,
-      name: json['name'] as String? ?? '',
-      description: json['description'] as String?,
-      colorHex: json['color'] as String? ?? '#6366F1',
-      active: json['active'] as bool? ?? true,
-      totalSubjects: (json['totalSubjects'] as num?)?.toInt() ?? 0,
-      totalSessions: (json['totalSessions'] as num?)?.toInt() ?? 0,
-      totalStudySeconds: (json['totalStudySeconds'] as num?)?.toInt() ?? 0,
-      createdAt: json['createdAt'] != null
+      nome: json['name'] as String? ?? '',
+      descricao: json['description'] as String?,
+      corHex: json['color'] as String? ?? '#6366F1',
+      ativo: json['active'] as bool? ?? true,
+      totalDisciplinas: (json['totalSubjects'] as num?)?.toInt() ?? 0,
+      totalSessoes: (json['totalSessions'] as num?)?.toInt() ?? 0,
+      totalSegundosEstudo: (json['totalStudySeconds'] as num?)?.toInt() ?? 0,
+      criadoEm: json['createdAt'] != null
           ? DateTime.parse(json['createdAt'].toString())
           : DateTime.now(),
     );
@@ -51,10 +51,10 @@ class StudyGroup {
 
   Map<String, dynamic> toJson() {
     return {
-      'name': name,
-      'description': description,
-      'color': colorHex,
-      'active': active,
+      'name': nome,
+      'description': descricao,
+      'color': corHex,
+      'active': ativo,
     };
   }
 

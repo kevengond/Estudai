@@ -6,26 +6,29 @@ import 'package:provider/provider.dart';
 class GroupSelectorWidget extends StatelessWidget {
   const GroupSelectorWidget({super.key});
 
-  static const List<String> availableColors = [
-    '#6366F1', // Indigo
-    '#059669', // Emerald
-    '#0891B2', // Cyan
-    '#D97706', // Amber
-    '#DC2626', // Red
-    '#9333EA', // Purple
-    '#DB2777', // Pink
+  static const List<String> coresDisponiveis = [
+    '#6366F1', // Índigo
+    '#059669', // Esmeralda
+    '#0891B2', // Ciano
+    '#D97706', // Âmbar
+    '#DC2626', // Vermelho
+    '#9333EA', // Roxo
+    '#DB2777', // Rosa
   ];
+
+  static List<String> get availableColors => coresDisponiveis;
 
   @override
   Widget build(BuildContext context) {
-    final studyProvider = context.watch<StudyProvider>();
-    final groups = studyProvider.groups;
-    final selectedGroup = studyProvider.selectedGroup;
-    final theme = Theme.of(context);
+    final provedorEstudo = context.watch<StudyProvider>();
+    final grupos = provedorEstudo.grupos;
+    final grupoSelecionado = provedorEstudo.grupoSelecionado;
+    final tema = Theme.of(context);
+    final ehModoEscuro = tema.brightness == Brightness.dark;
 
-    if (groups.isEmpty) {
+    if (grupos.isEmpty) {
       return TextButton.icon(
-        onPressed: () => showAddEditGroupDialog(context),
+        onPressed: () => exibirDialogoAdicionarEditarGrupo(context),
         icon: const Icon(Icons.add_rounded, size: 16),
         label: const Text('Criar Subgrupo', style: TextStyle(fontSize: 12)),
       );
@@ -34,12 +37,12 @@ class GroupSelectorWidget extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: theme.brightness == Brightness.dark
+        color: ehModoEscuro
             ? const Color(0xFF1E293B)
             : const Color(0xFFEFF6FF),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: theme.brightness == Brightness.dark
+          color: ehModoEscuro
               ? const Color(0xFF334155)
               : const Color(0xFFBFDBFE),
         ),
@@ -48,33 +51,33 @@ class GroupSelectorWidget extends StatelessWidget {
         tooltip: 'Trocar Subgrupo / Concurso',
         offset: const Offset(0, 40),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        itemBuilder: (context) {
+        itemBuilder: (contextoMenu) {
           return [
-            ...groups.map(
-              (g) => PopupMenuItem<StudyGroup?>(
-                value: g,
+            ...grupos.map(
+              (grupo) => PopupMenuItem<StudyGroup?>(
+                value: grupo,
                 child: Row(
                   children: [
                     Container(
                       width: 10,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: g.color,
+                        color: grupo.cor,
                         shape: BoxShape.circle,
                       ),
                     ),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        g.name,
+                        grupo.nome,
                         style: TextStyle(
-                          fontWeight: selectedGroup?.id == g.id
+                          fontWeight: grupoSelecionado?.id == grupo.id
                               ? FontWeight.bold
                               : FontWeight.normal,
                         ),
                       ),
                     ),
-                    if (selectedGroup?.id == g.id)
+                    if (grupoSelecionado?.id == grupo.id)
                       const Icon(Icons.check_rounded,
                           size: 18, color: Color(0xFF10B981)),
                   ],
@@ -95,11 +98,11 @@ class GroupSelectorWidget extends StatelessWidget {
             ),
           ];
         },
-        onSelected: (group) {
-          if (group == null) {
-            showAddEditGroupDialog(context);
+        onSelected: (grupoEscolhido) {
+          if (grupoEscolhido == null) {
+            exibirDialogoAdicionarEditarGrupo(context);
           } else {
-            studyProvider.selectGroup(group);
+            provedorEstudo.selecionarGrupo(grupoEscolhido);
           }
         },
         child: Row(
@@ -109,7 +112,7 @@ class GroupSelectorWidget extends StatelessWidget {
               width: 8,
               height: 8,
               decoration: BoxDecoration(
-                color: selectedGroup?.color ?? const Color(0xFF6366F1),
+                color: grupoSelecionado?.cor ?? const Color(0xFF6366F1),
                 shape: BoxShape.circle,
               ),
             ),
@@ -117,7 +120,7 @@ class GroupSelectorWidget extends StatelessWidget {
             ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 100),
               child: Text(
-                selectedGroup?.name ?? 'Subgrupo',
+                grupoSelecionado?.nome ?? 'Subgrupo',
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   fontWeight: FontWeight.bold,
@@ -132,24 +135,26 @@ class GroupSelectorWidget extends StatelessWidget {
     );
   }
 
-  static void showAddEditGroupDialog(BuildContext context,
-      {StudyGroup? group}) {
-    final isEditing = group != null;
-    final nameController = TextEditingController(text: group?.name ?? '');
-    final descController =
-        TextEditingController(text: group?.description ?? '');
-    String selectedColor = group?.colorHex ?? availableColors.first;
+  static void exibirDialogoAdicionarEditarGrupo(
+    BuildContext contexto, {
+    StudyGroup? grupo,
+  }) {
+    final estaEditando = grupo != null;
+    final controladorNome = TextEditingController(text: grupo?.nome ?? '');
+    final controladorDescricao =
+        TextEditingController(text: grupo?.descricao ?? '');
+    String corSelecionada = grupo?.corHex ?? coresDisponiveis.first;
 
     showDialog(
-      context: context,
-      builder: (dialogCtx) {
+      context: contexto,
+      builder: (contextoDialogo) {
         return StatefulBuilder(
-          builder: (ctx, setState) {
+          builder: (contextoEstado, definirEstadoInterno) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
               title: Text(
-                isEditing
+                estaEditando
                     ? 'Editar Subgrupo / Concurso'
                     : 'Novo Subgrupo / Concurso',
                 style: const TextStyle(fontWeight: FontWeight.bold),
@@ -160,7 +165,7 @@ class GroupSelectorWidget extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
-                      controller: nameController,
+                      controller: controladorNome,
                       decoration: const InputDecoration(
                         labelText: 'Nome do Subgrupo / Concurso',
                         hintText: 'Ex: Concurso Polícia Federal, OAB, etc.',
@@ -168,7 +173,7 @@ class GroupSelectorWidget extends StatelessWidget {
                     ),
                     const SizedBox(height: 14),
                     TextField(
-                      controller: descController,
+                      controller: controladorDescricao,
                       maxLines: 2,
                       decoration: const InputDecoration(
                         labelText: 'Descrição / Cargo (opcional)',
@@ -184,29 +189,29 @@ class GroupSelectorWidget extends StatelessWidget {
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
-                      children: availableColors.map((hex) {
-                        final color = Color(int.parse(
-                            'FF${hex.replaceAll('#', '')}',
+                      children: coresDisponiveis.map((codigoHex) {
+                        final cor = Color(int.parse(
+                            'FF${codigoHex.replaceAll('#', '')}',
                             radix: 16));
-                        final isSelected = selectedColor == hex;
+                        final estaSelecionada = corSelecionada == codigoHex;
 
                         return GestureDetector(
                           onTap: () {
-                            setState(() {
-                              selectedColor = hex;
+                            definirEstadoInterno(() {
+                              corSelecionada = codigoHex;
                             });
                           },
                           child: Container(
                             width: 32,
                             height: 32,
                             decoration: BoxDecoration(
-                              color: color,
+                              color: cor,
                               shape: BoxShape.circle,
-                              border: isSelected
+                              border: estaSelecionada
                                   ? Border.all(color: Colors.white, width: 3)
                                   : null,
                             ),
-                            child: isSelected
+                            child: estaSelecionada
                                 ? const Icon(Icons.check,
                                     color: Colors.white, size: 16)
                                 : null,
@@ -219,28 +224,37 @@ class GroupSelectorWidget extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
+                  onPressed: () => Navigator.pop(contextoDialogo),
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final name = nameController.text.trim();
-                    final desc = descController.text.trim();
-                    if (name.isEmpty) return;
+                    final nome = controladorNome.text.trim();
+                    final descricao = controladorDescricao.text.trim();
+                    if (nome.isEmpty) return;
 
-                    final studyProvider = context.read<StudyProvider>();
-                    if (isEditing) {
-                      await studyProvider.updateGroup(
-                          group.id, name, desc, selectedColor, true);
+                    final provedorEstudo = contexto.read<StudyProvider>();
+                    if (estaEditando) {
+                      await provedorEstudo.atualizarGrupo(
+                        grupo.id,
+                        nome,
+                        descricao,
+                        corSelecionada,
+                        true,
+                      );
                     } else {
-                      await studyProvider.addGroup(name, desc, selectedColor);
+                      await provedorEstudo.adicionarGrupo(
+                        nome,
+                        descricao,
+                        corSelecionada,
+                      );
                     }
 
-                    if (context.mounted) {
-                      Navigator.pop(dialogCtx);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    if (contexto.mounted) {
+                      Navigator.pop(contextoDialogo);
+                      ScaffoldMessenger.of(contexto).showSnackBar(
                         SnackBar(
-                          content: Text(isEditing
+                          content: Text(estaEditando
                               ? 'Subgrupo atualizado!'
                               : 'Subgrupo criado com sucesso!'),
                           backgroundColor: const Color(0xFF10B981),
@@ -248,7 +262,7 @@ class GroupSelectorWidget extends StatelessWidget {
                       );
                     }
                   },
-                  child: Text(isEditing ? 'Salvar' : 'Criar Subgrupo'),
+                  child: Text(estaEditando ? 'Salvar' : 'Criar Subgrupo'),
                 ),
               ],
             );
@@ -257,4 +271,8 @@ class GroupSelectorWidget extends StatelessWidget {
       },
     );
   }
+
+  static void showAddEditGroupDialog(BuildContext context,
+          {StudyGroup? group}) =>
+      exibirDialogoAdicionarEditarGrupo(context, grupo: group);
 }

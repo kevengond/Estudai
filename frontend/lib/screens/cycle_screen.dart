@@ -1,50 +1,61 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/models/cycle_suggestion.dart';
 import 'package:frontend/models/study_session.dart';
 import 'package:frontend/models/subject.dart';
 import 'package:frontend/providers/study_provider.dart';
 import 'package:provider/provider.dart';
 
 class CycleScreen extends StatefulWidget {
-  final Function(int) onNavigateToTab;
+  final Function(int) aoNavegarParaAba;
 
-  const CycleScreen({super.key, required this.onNavigateToTab});
+  const CycleScreen({
+    super.key,
+    Function(int)? aoNavegarParaAba,
+    Function(int)? onNavigateToTab,
+  }) : aoNavegarParaAba = aoNavegarParaAba ?? onNavigateToTab ?? _funcaoVazia;
+
+  static void _funcaoVazia(int _) {}
+
+  // Getter de compatibilidade
+  Function(int) get onNavigateToTab => aoNavegarParaAba;
 
   @override
   State<CycleScreen> createState() => _CycleScreenState();
 }
 
 class _CycleScreenState extends State<CycleScreen> {
-  List<Subject> _reorderedList = [];
-  bool _isSavingOrder = false;
+  List<Subject> _listaReordenada = [];
+  bool _salvandoOrdem = false;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!_isSavingOrder) {
-      final studyProvider = context.watch<StudyProvider>();
-      _reorderedList = List.from(studyProvider.activeSubjects);
+    if (!_salvandoOrdem) {
+      final provedorEstudo = context.watch<StudyProvider>();
+      _listaReordenada = List.from(provedorEstudo.disciplinasAtivas);
     }
   }
 
-  Future<void> _moveSubject(int oldIndex, int newIndex) async {
-    if (_isSavingOrder) return;
-    if (newIndex < 0 || newIndex >= _reorderedList.length) return;
+  Future<void> _moverDisciplina(int indiceAntigo, int indiceNovo) async {
+    if (_salvandoOrdem) return;
+    if (indiceNovo < 0 || indiceNovo >= _listaReordenada.length) return;
 
     setState(() {
-      _isSavingOrder = true;
-      final item = _reorderedList.removeAt(oldIndex);
-      _reorderedList.insert(newIndex, item);
+      _salvandoOrdem = true;
+      final itemRemovido = _listaReordenada.removeAt(indiceAntigo);
+      _listaReordenada.insert(indiceNovo, itemRemovido);
     });
 
     try {
-      final studyProvider = context.read<StudyProvider>();
-      final ids = _reorderedList.map((s) => s.id).toList();
-      await studyProvider.reorderCycle(ids);
+      final provedorEstudo = context.read<StudyProvider>();
+      final idsDisciplinas = _listaReordenada.map((item) => item.id).toList();
+      await provedorEstudo.reordenarCiclo(idsDisciplinas);
     } finally {
       if (mounted) {
         setState(() {
-          _isSavingOrder = false;
-          _reorderedList = List.from(context.read<StudyProvider>().activeSubjects);
+          _salvandoOrdem = false;
+          _listaReordenada =
+              List.from(context.read<StudyProvider>().disciplinasAtivas);
         });
       }
     }
@@ -52,17 +63,17 @@ class _CycleScreenState extends State<CycleScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final studyProvider = context.watch<StudyProvider>();
-    final suggestion = studyProvider.suggestion;
-    final theme = Theme.of(context);
-    final suggestedSubject = suggestion?.suggestedSubject;
+    final provedorEstudo = context.watch<StudyProvider>();
+    final sugestao = provedorEstudo.sugestao;
+    final tema = Theme.of(context);
+    final disciplinaSugerida = sugestao?.disciplinaSugerida;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Cabeçalho
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -72,7 +83,7 @@ class _CycleScreenState extends State<CycleScreen> {
                   children: [
                     Text(
                       'Ciclo de Estudos 🔄',
-                      style: theme.textTheme.titleLarge?.copyWith(
+                      style: tema.textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.5,
                       ),
@@ -81,7 +92,7 @@ class _CycleScreenState extends State<CycleScreen> {
                     Text(
                       'Use as setas ↑ ↓ ou arraste para definir a ordem do ciclo.',
                       style: TextStyle(
-                        color: theme.brightness == Brightness.dark
+                        color: tema.brightness == Brightness.dark
                             ? Colors.grey.shade400
                             : Colors.grey.shade600,
                         fontSize: 13,
@@ -90,7 +101,7 @@ class _CycleScreenState extends State<CycleScreen> {
                   ],
                 ),
               ),
-              if (_isSavingOrder)
+              if (_salvandoOrdem)
                 const SizedBox(
                   width: 20,
                   height: 20,
@@ -99,28 +110,28 @@ class _CycleScreenState extends State<CycleScreen> {
             ],
           ),
 
-          if (studyProvider.selectedGroup != null) ...[
+          if (provedorEstudo.grupoSelecionado != null) ...[
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: studyProvider.selectedGroup!.color.withOpacity(0.12),
+                color: provedorEstudo.grupoSelecionado!.cor.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.layers_rounded,
-                      size: 14, color: studyProvider.selectedGroup!.color),
+                      size: 14, color: provedorEstudo.grupoSelecionado!.cor),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      'Ciclo: ${studyProvider.selectedGroup!.name}',
+                      'Ciclo: ${provedorEstudo.grupoSelecionado!.nome}',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 12,
-                        color: studyProvider.selectedGroup!.color,
+                        color: provedorEstudo.grupoSelecionado!.cor,
                       ),
                     ),
                   ),
@@ -130,14 +141,14 @@ class _CycleScreenState extends State<CycleScreen> {
           ],
           const SizedBox(height: 16),
 
-          // Hero Banner da Próxima Matéria Sugerida
-          if (suggestedSubject != null && _reorderedList.isNotEmpty) ...[
-            _buildNextSuggestionHero(context, suggestion!, theme),
+          // Banner da Próxima Matéria Sugerida
+          if (disciplinaSugerida != null && _listaReordenada.isNotEmpty) ...[
+            _construirDestaqueProximaSugestao(context, sugestao!, tema),
             const SizedBox(height: 20),
           ],
 
           // Lista de disciplinas do ciclo
-          if (_reorderedList.isEmpty)
+          if (_listaReordenada.isEmpty)
             Center(
               child: Padding(
                 padding: const EdgeInsets.all(32.0),
@@ -154,7 +165,7 @@ class _CycleScreenState extends State<CycleScreen> {
                     const SizedBox(height: 8),
                     ElevatedButton(
                       onPressed: () =>
-                          widget.onNavigateToTab(3), // Disciplinas
+                          widget.aoNavegarParaAba(3), // Aba Matérias
                       child: const Text('Ver / Ativar Disciplinas'),
                     ),
                   ],
@@ -166,49 +177,49 @@ class _CycleScreenState extends State<CycleScreen> {
               buildDefaultDragHandles: false,
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: _reorderedList.length,
-              onReorder: (oldIndex, newIndex) {
-                if (newIndex > oldIndex) {
-                  newIndex -= 1;
+              itemCount: _listaReordenada.length,
+              onReorder: (indiceAntigo, indiceNovo) {
+                if (indiceNovo > indiceAntigo) {
+                  indiceNovo -= 1;
                 }
-                _moveSubject(oldIndex, newIndex);
+                _moverDisciplina(indiceAntigo, indiceNovo);
               },
-              itemBuilder: (context, index) {
-                final subject = _reorderedList[index];
-                final isNextSuggested =
-                    suggestedSubject?.id == subject.id;
+              itemBuilder: (contextoItem, indice) {
+                final disciplina = _listaReordenada[indice];
+                final ehProximaSugerida =
+                    disciplinaSugerida?.id == disciplina.id;
 
-                final isFirst = index == 0;
-                final isLast = index == _reorderedList.length - 1;
+                final ehPrimeira = indice == 0;
+                final ehUltima = indice == _listaReordenada.length - 1;
 
                 return Material(
-                  key: ValueKey(subject.id),
+                  key: ValueKey(disciplina.id),
                   color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(14),
                     onTap: () {
-                      studyProvider.prepareFromSubject(subject);
-                      widget.onNavigateToTab(1); // Registro
+                      provedorEstudo.prepararAPartirDeDisciplina(disciplina);
+                      widget.aoNavegarParaAba(1); // Aba Registro
                     },
                     child: Container(
                       margin: const EdgeInsets.only(bottom: 10),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 12, vertical: 10),
                       decoration: BoxDecoration(
-                        color: theme.cardTheme.color,
+                        color: tema.cardTheme.color,
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(
-                          color: isNextSuggested
-                              ? theme.colorScheme.primary
-                              : (theme.brightness == Brightness.dark
+                          color: ehProximaSugerida
+                              ? tema.colorScheme.primary
+                              : (tema.brightness == Brightness.dark
                                   ? const Color(0xFF334155)
                                   : const Color(0xFFE2E8F0)),
-                          width: isNextSuggested ? 2 : 1,
+                          width: ehProximaSugerida ? 2 : 1,
                         ),
-                        boxShadow: isNextSuggested
+                        boxShadow: ehProximaSugerida
                             ? [
                                 BoxShadow(
-                                  color: theme.colorScheme.primary
+                                  color: tema.colorScheme.primary
                                       .withOpacity(0.15),
                                   blurRadius: 8,
                                   offset: const Offset(0, 3),
@@ -220,10 +231,10 @@ class _CycleScreenState extends State<CycleScreen> {
                         children: [
                           // Ordem no Ciclo
                           CircleAvatar(
-                            backgroundColor: subject.color,
+                            backgroundColor: disciplina.cor,
                             radius: 15,
                             child: Text(
-                              '${index + 1}',
+                              '${indice + 1}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -243,7 +254,7 @@ class _CycleScreenState extends State<CycleScreen> {
                                   children: [
                                     Flexible(
                                       child: Text(
-                                        subject.name,
+                                        disciplina.nome,
                                         overflow: TextOverflow.ellipsis,
                                         maxLines: 1,
                                         style: const TextStyle(
@@ -252,13 +263,13 @@ class _CycleScreenState extends State<CycleScreen> {
                                         ),
                                       ),
                                     ),
-                                    if (isNextSuggested) ...[
+                                    if (ehProximaSugerida) ...[
                                       const SizedBox(width: 6),
                                       Container(
                                         padding: const EdgeInsets.symmetric(
                                             horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(
-                                          color: theme.colorScheme.primary
+                                          color: tema.colorScheme.primary
                                               .withOpacity(0.15),
                                           borderRadius:
                                               BorderRadius.circular(4),
@@ -268,7 +279,7 @@ class _CycleScreenState extends State<CycleScreen> {
                                           style: TextStyle(
                                             fontSize: 9,
                                             fontWeight: FontWeight.w800,
-                                            color: theme.colorScheme.primary,
+                                            color: tema.colorScheme.primary,
                                           ),
                                         ),
                                       ),
@@ -277,7 +288,7 @@ class _CycleScreenState extends State<CycleScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Meta: ${subject.targetMinutes} min • Total: ${(subject.totalStudySeconds / 3600).toStringAsFixed(1)}h',
+                                  'Meta: ${disciplina.metaMinutos} min • Total: ${(disciplina.totalSegundosEstudo / 3600).toStringAsFixed(1)}h',
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 11,
@@ -293,18 +304,18 @@ class _CycleScreenState extends State<CycleScreen> {
                             icon: Icon(
                               Icons.play_circle_fill_rounded,
                               size: 22,
-                              color: isNextSuggested
-                                  ? theme.colorScheme.primary
+                              color: ehProximaSugerida
+                                  ? tema.colorScheme.primary
                                   : Colors.grey.shade400,
                             ),
                             tooltip: 'Estudar agora',
                             onPressed: () {
-                              if (isNextSuggested && suggestion != null) {
-                                studyProvider.prepareFromSuggestion(suggestion);
+                              if (ehProximaSugerida && sugestao != null) {
+                                provedorEstudo.prepararAPartirDeSugestao(sugestao);
                               } else {
-                                studyProvider.prepareFromSubject(subject);
+                                provedorEstudo.prepararAPartirDeDisciplina(disciplina);
                               }
-                              widget.onNavigateToTab(1);
+                              widget.aoNavegarParaAba(1);
                             },
                           ),
 
@@ -313,16 +324,17 @@ class _CycleScreenState extends State<CycleScreen> {
                             icon: Icon(
                               Icons.arrow_upward_rounded,
                               size: 19,
-                              color: isFirst || _isSavingOrder
+                              color: ehPrimeira || _salvandoOrdem
                                   ? Colors.grey.withOpacity(0.3)
-                                  : theme.colorScheme.primary,
+                                  : tema.colorScheme.primary,
                             ),
                             padding: const EdgeInsets.all(3),
                             constraints: const BoxConstraints(),
-                            tooltip: isFirst ? null : 'Mover para cima no ciclo',
-                            onPressed: (isFirst || _isSavingOrder)
+                            tooltip:
+                                ehPrimeira ? null : 'Mover para cima no ciclo',
+                            onPressed: (ehPrimeira || _salvandoOrdem)
                                 ? null
-                                : () => _moveSubject(index, index - 1),
+                                : () => _moverDisciplina(indice, indice - 1),
                           ),
                           const SizedBox(width: 2),
 
@@ -331,20 +343,21 @@ class _CycleScreenState extends State<CycleScreen> {
                             icon: Icon(
                               Icons.arrow_downward_rounded,
                               size: 19,
-                              color: isLast || _isSavingOrder
+                              color: ehUltima || _salvandoOrdem
                                   ? Colors.grey.withOpacity(0.3)
-                                  : theme.colorScheme.primary,
+                                  : tema.colorScheme.primary,
                             ),
                             padding: const EdgeInsets.all(3),
                             constraints: const BoxConstraints(),
-                            tooltip: isLast ? null : 'Mover para baixo no ciclo',
-                            onPressed: (isLast || _isSavingOrder)
+                            tooltip:
+                                ehUltima ? null : 'Mover para baixo no ciclo',
+                            onPressed: (ehUltima || _salvandoOrdem)
                                 ? null
-                                : () => _moveSubject(index, index + 1),
+                                : () => _moverDisciplina(indice, indice + 1),
                           ),
                           const SizedBox(width: 2),
 
-                          // Ícone Amarelo: Olho (Remover do Ciclo / Deixar Invisível)
+                          // Ícone Amarelo: Olho (Ocultar do Ciclo)
                           IconButton(
                             icon: const Icon(
                               Icons.visibility_off_outlined,
@@ -353,9 +366,10 @@ class _CycleScreenState extends State<CycleScreen> {
                             ),
                             padding: const EdgeInsets.all(3),
                             constraints: const BoxConstraints(),
-                            tooltip: 'Deixar invisível no ciclo (mantém histórico)',
+                            tooltip:
+                                'Deixar invisível no ciclo (mantém histórico)',
                             onPressed: () =>
-                                _confirmRemoveFromCycle(context, subject),
+                                _confirmarOcultarDoCiclo(context, disciplina),
                           ),
                           const SizedBox(width: 2),
 
@@ -367,7 +381,7 @@ class _CycleScreenState extends State<CycleScreen> {
                             constraints: const BoxConstraints(),
                             tooltip: 'Excluir disciplina definitivamente',
                             onPressed: () =>
-                                _confirmDeleteSubject(context, subject),
+                                _confirmarExcluirDisciplina(context, disciplina),
                           ),
                         ],
                       ),
@@ -381,17 +395,21 @@ class _CycleScreenState extends State<CycleScreen> {
     );
   }
 
-  Widget _buildNextSuggestionHero(
-      BuildContext context, dynamic suggestion, ThemeData theme) {
-    final subject = suggestion.suggestedSubject;
-    final isQuestions = suggestion.suggestionType == StudyType.questions;
-    final studyProvider = context.read<StudyProvider>();
+  Widget _construirDestaqueProximaSugestao(
+    BuildContext contexto,
+    NextStudySuggestion sugestao,
+    ThemeData tema,
+  ) {
+    final disciplina = sugestao.disciplinaSugerida;
+    if (disciplina == null) return const SizedBox.shrink();
+
+    final provedorEstudo = contexto.read<StudyProvider>();
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: theme.brightness == Brightness.dark
+          colors: tema.brightness == Brightness.dark
               ? [const Color(0xFF1E293B), const Color(0xFF0F172A)]
               : [const Color(0xFFEEF2FF), const Color(0xFFE0E7FF)],
           begin: Alignment.topLeft,
@@ -399,12 +417,12 @@ class _CycleScreenState extends State<CycleScreen> {
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.primary.withOpacity(0.35),
+          color: tema.colorScheme.primary.withOpacity(0.35),
           width: 1.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: theme.colorScheme.primary.withOpacity(0.1),
+            color: tema.colorScheme.primary.withOpacity(0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -420,30 +438,30 @@ class _CycleScreenState extends State<CycleScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primary.withOpacity(0.15),
+                  color: tema.colorScheme.primary.withOpacity(0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(Icons.autorenew_rounded,
-                        size: 13, color: theme.colorScheme.primary),
+                        size: 13, color: tema.colorScheme.primary),
                     const SizedBox(width: 4),
                     Text(
                       'PRÓXIMA NO CICLO',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w800,
-                        color: theme.colorScheme.primary,
+                        color: tema.colorScheme.primary,
                         letterSpacing: 0.5,
                       ),
                     ),
                   ],
                 ),
               ),
-              if (suggestion.cycleStatus.isNotEmpty)
+              if (sugestao.statusCiclo.isNotEmpty)
                 Text(
-                  suggestion.cycleStatus,
+                  sugestao.statusCiclo,
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -459,15 +477,15 @@ class _CycleScreenState extends State<CycleScreen> {
                 width: 14,
                 height: 14,
                 decoration: BoxDecoration(
-                  color: subject.color,
+                  color: disciplina.cor,
                   shape: BoxShape.circle,
                 ),
               ),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  subject.name,
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  disciplina.nome,
+                  style: tema.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w800,
                     fontSize: 16,
                   ),
@@ -477,10 +495,12 @@ class _CycleScreenState extends State<CycleScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            suggestion.checkpointDetail ?? 'Pronto para iniciar a sessão',
+            sugestao.detalhePontoParada.isNotEmpty
+                ? sugestao.detalhePontoParada
+                : 'Pronto para iniciar a sessão',
             style: TextStyle(
               fontSize: 12,
-              color: theme.brightness == Brightness.dark
+              color: tema.brightness == Brightness.dark
                   ? Colors.grey.shade300
                   : Colors.grey.shade700,
             ),
@@ -490,7 +510,7 @@ class _CycleScreenState extends State<CycleScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
-                backgroundColor: theme.colorScheme.primary,
+                backgroundColor: tema.colorScheme.primary,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
@@ -498,8 +518,8 @@ class _CycleScreenState extends State<CycleScreen> {
                 ),
               ),
               onPressed: () {
-                studyProvider.prepareFromSuggestion(suggestion);
-                widget.onNavigateToTab(1); // Registro
+                provedorEstudo.prepararAPartirDeSugestao(sugestao);
+                widget.aoNavegarParaAba(1); // Aba Registro
               },
               icon: const Icon(Icons.play_arrow_rounded, size: 18),
               label: const Text(
@@ -513,10 +533,10 @@ class _CycleScreenState extends State<CycleScreen> {
     );
   }
 
-  void _confirmRemoveFromCycle(BuildContext context, Subject subject) {
+  void _confirmarOcultarDoCiclo(BuildContext contexto, Subject disciplina) {
     showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
+      context: contexto,
+      builder: (contextoDialogo) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
@@ -526,11 +546,11 @@ class _CycleScreenState extends State<CycleScreen> {
           ],
         ),
         content: Text(
-          'Deseja ocultar "${subject.name}" do ciclo de estudos ativo? O histórico e o tempo estudado continuarão salvos e você poderá reativá-la a qualquer momento na aba "Matérias".',
+          'Deseja ocultar "${disciplina.nome}" do ciclo de estudos ativo? O histórico e o tempo estudado continuarão salvos e você poderá reativá-la a qualquer momento na aba "Matérias".',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(contextoDialogo),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -539,12 +559,13 @@ class _CycleScreenState extends State<CycleScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              Navigator.pop(ctx);
-              final studyProvider = context.read<StudyProvider>();
-              await studyProvider.toggleSubjectActiveInCycle(subject);
+              Navigator.pop(contextoDialogo);
+              final provedorEstudo = contexto.read<StudyProvider>();
+              await provedorEstudo.alternarDisciplinaAtivaNoCiclo(disciplina);
               if (mounted) {
                 setState(() {
-                  _reorderedList = List.from(studyProvider.activeSubjects);
+                  _listaReordenada =
+                      List.from(provedorEstudo.disciplinasAtivas);
                 });
               }
             },
@@ -555,10 +576,11 @@ class _CycleScreenState extends State<CycleScreen> {
     );
   }
 
-  void _confirmDeleteSubject(BuildContext context, Subject subject) {
+  void _confirmarExcluirDisciplina(
+      BuildContext contexto, Subject disciplina) {
     showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
+      context: contexto,
+      builder: (contextoDialogo) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Row(
           children: [
@@ -568,11 +590,11 @@ class _CycleScreenState extends State<CycleScreen> {
           ],
         ),
         content: Text(
-          'Deseja excluir "${subject.name}" definitivamente? Isso removerá a matéria do ciclo e apagará o histórico associado.',
+          'Deseja excluir "${disciplina.nome}" definitivamente? Isso removerá a matéria do ciclo e apagará o histórico associado.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(contextoDialogo),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
@@ -581,12 +603,13 @@ class _CycleScreenState extends State<CycleScreen> {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              Navigator.pop(ctx);
-              final studyProvider = context.read<StudyProvider>();
-              await studyProvider.deleteSubject(subject.id);
+              Navigator.pop(contextoDialogo);
+              final provedorEstudo = contexto.read<StudyProvider>();
+              await provedorEstudo.excluirDisciplina(disciplina.id);
               if (mounted) {
                 setState(() {
-                  _reorderedList = List.from(studyProvider.activeSubjects);
+                  _listaReordenada =
+                      List.from(provedorEstudo.disciplinasAtivas);
                 });
               }
             },

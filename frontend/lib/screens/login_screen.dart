@@ -11,33 +11,34 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _loginController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _chaveFormulario = GlobalKey<FormState>();
+  final _controladorLogin = TextEditingController();
+  final _controladorSenha = TextEditingController();
+  bool _ocultarSenha = true;
 
   @override
   void dispose() {
-    _loginController.dispose();
-    _passwordController.dispose();
+    _controladorLogin.dispose();
+    _controladorSenha.dispose();
     super.dispose();
   }
 
-  Future<void> _submitLogin() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _enviarLogin() async {
+    if (!_chaveFormulario.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    await authProvider.login(
-      _loginController.text.trim(),
-      _passwordController.text,
+    final provedorAutenticacao =
+        Provider.of<AuthProvider>(context, listen: false);
+    await provedorAutenticacao.fazerLogin(
+      _controladorLogin.text.trim(),
+      _controladorSenha.text,
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-    final authProvider = context.watch<AuthProvider>();
+    final tema = Theme.of(context);
+    final ehModoEscuro = tema.brightness == Brightness.dark;
+    final provedorAutenticacao = context.watch<AuthProvider>();
 
     return Scaffold(
       body: SafeArea(
@@ -47,23 +48,23 @@ class _LoginScreenState extends State<LoginScreen> {
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 440),
               child: Card(
-                elevation: isDark ? 2 : 8,
+                elevation: ehModoEscuro ? 2 : 8,
                 shadowColor: Colors.black.withOpacity(0.08),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                   side: BorderSide(
-                    color: isDark ? Colors.white10 : Colors.black12,
+                    color: ehModoEscuro ? Colors.white10 : Colors.black12,
                   ),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(32),
                   child: Form(
-                    key: _formKey,
+                    key: _chaveFormulario,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        // Logo / Header
+                        // Logotipo / Cabeçalho
                         Center(
                           child: Container(
                             width: 64,
@@ -71,8 +72,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
                                 colors: [
-                                  theme.colorScheme.primary,
-                                  theme.colorScheme.secondary,
+                                  tema.colorScheme.primary,
+                                  tema.colorScheme.secondary,
                                 ],
                                 begin: Alignment.topLeft,
                                 end: Alignment.bottomRight,
@@ -90,7 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'EstudAI',
                           textAlign: TextAlign.center,
-                          style: theme.textTheme.headlineMedium?.copyWith(
+                          style: tema.textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             letterSpacing: -0.5,
                           ),
@@ -99,14 +100,16 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'Gestão Inteligente de Ciclo de Estudos',
                           textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                          style: tema.textTheme.bodyMedium?.copyWith(
+                            color: ehModoEscuro
+                                ? Colors.grey[400]
+                                : Colors.grey[600],
                           ),
                         ),
                         const SizedBox(height: 28),
 
-                        // Error Banner
-                        if (authProvider.errorMessage != null) ...[
+                        // Faixa de Erro
+                        if (provedorAutenticacao.mensagemErro != null) ...[
                           Container(
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
@@ -123,7 +126,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    authProvider.errorMessage!,
+                                    provedorAutenticacao.mensagemErro!,
                                     style: const TextStyle(
                                         color: Colors.red, fontSize: 13),
                                   ),
@@ -131,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.close,
                                       size: 16, color: Colors.red),
-                                  onPressed: authProvider.clearError,
+                                  onPressed: provedorAutenticacao.limparErro,
                                   constraints: const BoxConstraints(),
                                   padding: EdgeInsets.zero,
                                 ),
@@ -141,9 +144,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 16),
                         ],
 
-                        // Input Login (Username ou Email)
+                        // Campo Usuário ou E-mail
                         TextFormField(
-                          controller: _loginController,
+                          controller: _controladorLogin,
                           decoration: const InputDecoration(
                             labelText: 'Usuário ou E-mail',
                             prefixIcon: Icon(Icons.person_outline),
@@ -153,8 +156,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                   BorderRadius.all(Radius.circular(12)),
                             ),
                           ),
-                          validator: (val) {
-                            if (val == null || val.trim().isEmpty) {
+                          validator: (valor) {
+                            if (valor == null || valor.trim().isEmpty) {
                               return 'Informe seu usuário ou e-mail';
                             }
                             return null;
@@ -162,22 +165,22 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Input Senha
+                        // Campo Senha
                         TextFormField(
-                          controller: _passwordController,
-                          obscureText: _obscurePassword,
+                          controller: _controladorSenha,
+                          obscureText: _ocultarSenha,
                           decoration: InputDecoration(
                             labelText: 'Senha',
                             prefixIcon: const Icon(Icons.lock_outline),
                             suffixIcon: IconButton(
                               icon: Icon(
-                                _obscurePassword
+                                _ocultarSenha
                                     ? Icons.visibility_off
                                     : Icons.visibility,
                               ),
                               onPressed: () {
                                 setState(() {
-                                  _obscurePassword = !_obscurePassword;
+                                  _ocultarSenha = !_ocultarSenha;
                                 });
                               },
                             ),
@@ -186,29 +189,30 @@ class _LoginScreenState extends State<LoginScreen> {
                                   BorderRadius.all(Radius.circular(12)),
                             ),
                           ),
-                          validator: (val) {
-                            if (val == null || val.isEmpty) {
+                          validator: (valor) {
+                            if (valor == null || valor.isEmpty) {
                               return 'Informe sua senha';
                             }
                             return null;
                           },
-                          onFieldSubmitted: (_) => _submitLogin(),
+                          onFieldSubmitted: (_) => _enviarLogin(),
                         ),
                         const SizedBox(height: 24),
 
                         // Botão Entrar
                         ElevatedButton(
-                          onPressed:
-                              authProvider.isLoading ? null : _submitLogin,
+                          onPressed: provedorAutenticacao.estaCarregando
+                              ? null
+                              : _enviarLogin,
                           style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(vertical: 16),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            backgroundColor: theme.colorScheme.primary,
+                            backgroundColor: tema.colorScheme.primary,
                             foregroundColor: Colors.white,
                           ),
-                          child: authProvider.isLoading
+                          child: provedorAutenticacao.estaCarregando
                               ? const SizedBox(
                                   height: 20,
                                   width: 20,
@@ -230,7 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Botão Criar Conta
                         OutlinedButton(
                           onPressed: () {
-                            authProvider.clearError();
+                            provedorAutenticacao.limparErro();
                             Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (_) => const RegisterScreen(),
@@ -243,13 +247,13 @@ class _LoginScreenState extends State<LoginScreen> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             side: BorderSide(
-                              color: theme.colorScheme.primary.withOpacity(0.5),
+                              color: tema.colorScheme.primary.withOpacity(0.5),
                             ),
                           ),
                           child: Text(
                             'Criar Nova Conta',
                             style: TextStyle(
-                              color: theme.colorScheme.primary,
+                              color: tema.colorScheme.primary,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -260,7 +264,9 @@ class _LoginScreenState extends State<LoginScreen> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: isDark ? Colors.white.withOpacity(0.05) : Colors.grey[100],
+                            color: ehModoEscuro
+                                ? Colors.white.withOpacity(0.05)
+                                : Colors.grey[100],
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -268,7 +274,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 12,
-                              color: isDark ? Colors.grey[400] : Colors.grey[600],
+                              color: ehModoEscuro
+                                  ? Colors.grey[400]
+                                  : Colors.grey[600],
                             ),
                           ),
                         ),

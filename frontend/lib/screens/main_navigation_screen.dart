@@ -10,45 +10,50 @@ import 'package:frontend/widgets/group_selector_widget.dart';
 import 'package:provider/provider.dart';
 
 class MainNavigationScreen extends StatefulWidget {
-  final VoidCallback onToggleTheme;
-  final bool isDarkMode;
+  final VoidCallback aoAlternarTema;
+  final bool ehModoEscuro;
 
   const MainNavigationScreen({
     super.key,
-    required this.onToggleTheme,
-    required this.isDarkMode,
-  });
+    VoidCallback? aoAlternarTema,
+    VoidCallback? onToggleTheme,
+    bool? ehModoEscuro,
+    bool? isDarkMode,
+  })  : aoAlternarTema = aoAlternarTema ?? onToggleTheme ?? _funcaoVazia,
+        ehModoEscuro = ehModoEscuro ?? isDarkMode ?? false;
+
+  static void _funcaoVazia() {}
 
   @override
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
+  int _indiceAtual = 0;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<StudyProvider>().loadAllData();
+      context.read<StudyProvider>().carregarTodosDados();
     });
   }
 
-  void _onTabChanged(int index) {
+  void _aoMudarAba(int novoIndice) {
     setState(() {
-      _currentIndex = index;
+      _indiceAtual = novoIndice;
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isWideScreen = MediaQuery.of(context).size.width > 800;
+    final tema = Theme.of(context);
+    final ehTelaLarga = MediaQuery.of(context).size.width > 800;
 
-    final pages = [
-      DashboardScreen(onNavigateToTab: _onTabChanged),
-      RecordStudyScreen(onSessionSaved: () => _onTabChanged(0)),
-      CycleScreen(onNavigateToTab: _onTabChanged),
+    final paginas = [
+      DashboardScreen(aoNavegarParaAba: _aoMudarAba),
+      RecordStudyScreen(aoSalvarSessao: () => _aoMudarAba(0)),
+      CycleScreen(aoNavegarParaAba: _aoMudarAba),
       const SubjectsScreen(),
       const HistoryScreen(),
     ];
@@ -60,7 +65,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             Container(
               padding: const EdgeInsets.all(6),
               decoration: BoxDecoration(
-                color: theme.colorScheme.primary,
+                color: tema.colorScheme.primary,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Icon(Icons.auto_stories_rounded,
@@ -80,59 +85,71 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           const GroupSelectorWidget(),
           const SizedBox(width: 8),
           IconButton(
-            icon: Icon(widget.isDarkMode
+            icon: Icon(widget.ehModoEscuro
                 ? Icons.light_mode_rounded
                 : Icons.dark_mode_rounded),
-            onPressed: widget.onToggleTheme,
-            tooltip: widget.isDarkMode ? 'Tema Claro' : 'Tema Escuro',
+            onPressed: widget.aoAlternarTema,
+            tooltip: widget.ehModoEscuro ? 'Tema Claro' : 'Tema Escuro',
           ),
           const SizedBox(width: 4),
           Consumer<AuthProvider>(
-            builder: (context, auth, _) {
-              final user = auth.currentUser;
-              final initials = (user != null && user.name.isNotEmpty)
-                  ? user.name.trim().split(' ').map((e) => e[0]).take(2).join().toUpperCase()
+            builder: (contextoAuth, provedorAutenticacao, _) {
+              final usuario = provedorAutenticacao.usuarioAtual;
+              final iniciais = (usuario != null && usuario.nome.isNotEmpty)
+                  ? usuario.nome
+                      .trim()
+                      .split(' ')
+                      .map((parte) => parte[0])
+                      .take(2)
+                      .join()
+                      .toUpperCase()
                   : 'U';
 
               return PopupMenuButton<String>(
                 tooltip: 'Perfil do Usuário',
                 offset: const Offset(0, 48),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12)),
                 child: CircleAvatar(
                   radius: 16,
-                  backgroundColor: theme.colorScheme.primaryContainer,
+                  backgroundColor: tema.colorScheme.primaryContainer,
                   child: Text(
-                    initials,
+                    iniciais,
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onPrimaryContainer,
+                      color: tema.colorScheme.onPrimaryContainer,
                     ),
                   ),
                 ),
-                itemBuilder: (context) => [
+                itemBuilder: (contextoMenu) => [
                   PopupMenuItem<String>(
                     enabled: false,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          user?.name ?? 'Usuário',
-                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          usuario?.nome ?? 'Usuário',
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 14),
                         ),
                         Text(
-                          '@${user?.username ?? ""}',
-                          style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                          '@${usuario?.nomeUsuario ?? ""}',
+                          style:
+                              TextStyle(fontSize: 12, color: Colors.grey[600]),
                         ),
-                        if (user?.email.isNotEmpty == true)
+                        if (usuario?.email.isNotEmpty == true)
                           Text(
-                            user!.email,
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            usuario!.email,
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey[600]),
                           ),
-                        if (user?.phone != null && user!.phone!.isNotEmpty)
+                        if (usuario?.telefone != null &&
+                            usuario!.telefone!.isNotEmpty)
                           Text(
-                            user.phone!,
-                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            usuario.telefone!,
+                            style: TextStyle(
+                                fontSize: 12, color: Colors.grey[600]),
                           ),
                       ],
                     ),
@@ -149,9 +166,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                     ),
                   ),
                 ],
-                onSelected: (value) {
-                  if (value == 'logout') {
-                    context.read<AuthProvider>().logout();
+                onSelected: (opcaoSelecionada) {
+                  if (opcaoSelecionada == 'logout') {
+                    contextoAuth.read<AuthProvider>().fazerLogout();
                   }
                 },
               );
@@ -162,10 +179,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ),
       body: Row(
         children: [
-          if (isWideScreen)
+          if (ehTelaLarga)
             NavigationRail(
-              selectedIndex: _currentIndex,
-              onDestinationSelected: _onTabChanged,
+              selectedIndex: _indiceAtual,
+              onDestinationSelected: _aoMudarAba,
               labelType: NavigationRailLabelType.all,
               leading: const SizedBox(height: 10),
               destinations: const [
@@ -198,17 +215,17 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             ),
           Expanded(
             child: IndexedStack(
-              index: _currentIndex,
-              children: pages,
+              index: _indiceAtual,
+              children: paginas,
             ),
           ),
         ],
       ),
-      bottomNavigationBar: isWideScreen
+      bottomNavigationBar: ehTelaLarga
           ? null
           : NavigationBar(
-              selectedIndex: _currentIndex,
-              onDestinationSelected: _onTabChanged,
+              selectedIndex: _indiceAtual,
+              onDestinationSelected: _aoMudarAba,
               destinations: const [
                 NavigationDestination(
                   icon: Icon(Icons.dashboard_outlined),

@@ -2,103 +2,103 @@ import 'package:flutter/material.dart';
 import 'package:frontend/models/study_session.dart';
 
 class SubjectMetric {
-  final int subjectId;
-  final String subjectName;
-  final String subjectColorHex;
-  final int totalStudySeconds;
-  final int totalQuestions;
-  final int totalCorrect;
-  final double accuracyRate;
-  final int totalPagesRead;
-  final int sessionCount;
+  final int idDisciplina;
+  final String nomeDisciplina;
+  final String corHexDisciplina;
+  final int totalSegundosEstudo;
+  final int totalQuestoes;
+  final int totalAcertos;
+  final double taxaAcerto;
+  final int totalPaginasLidas;
+  final int quantidadeSessoes;
 
   SubjectMetric({
-    required this.subjectId,
-    required this.subjectName,
-    required this.subjectColorHex,
-    required this.totalStudySeconds,
-    required this.totalQuestions,
-    required this.totalCorrect,
-    required this.accuracyRate,
-    required this.totalPagesRead,
-    required this.sessionCount,
+    required this.idDisciplina,
+    required this.nomeDisciplina,
+    required this.corHexDisciplina,
+    required this.totalSegundosEstudo,
+    required this.totalQuestoes,
+    required this.totalAcertos,
+    required this.taxaAcerto,
+    required this.totalPaginasLidas,
+    required this.quantidadeSessoes,
   });
 
-  Color get subjectColor {
+  Color get corDisciplina {
     try {
-      final hex = subjectColorHex.replaceAll('#', '');
-      if (hex.length == 6) {
-        return Color(int.parse('FF$hex', radix: 16));
+      final codigoHexLimpo = corHexDisciplina.replaceAll('#', '');
+      if (codigoHexLimpo.length == 6) {
+        return Color(int.parse('FF$codigoHexLimpo', radix: 16));
       }
     } catch (_) {}
     return const Color(0xFF4F46E5);
   }
 
-  String get formattedDuration {
-    final hours = totalStudySeconds ~/ 3600;
-    final minutes = (totalStudySeconds % 3600) ~/ 60;
-    if (hours > 0) {
-      return '${hours}h ${minutes}m';
+  String get duracaoFormatada {
+    final horas = totalSegundosEstudo ~/ 3600;
+    final minutos = (totalSegundosEstudo % 3600) ~/ 60;
+    if (horas > 0) {
+      return '${horas}h ${minutos}m';
     }
-    return '${minutes}m';
+    return '${minutos}m';
   }
 
   factory SubjectMetric.fromJson(Map<String, dynamic> json) {
     return SubjectMetric(
-      subjectId: json['subjectId'] as int,
-      subjectName: json['subjectName'] as String? ?? '',
-      subjectColorHex: json['subjectColor'] as String? ?? '#4F46E5',
-      totalStudySeconds: (json['totalStudySeconds'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      totalCorrect: (json['totalCorrect'] as num?)?.toInt() ?? 0,
-      accuracyRate: (json['accuracyRate'] as num?)?.toDouble() ?? 0.0,
-      totalPagesRead: (json['totalPagesRead'] as num?)?.toInt() ?? 0,
-      sessionCount: (json['sessionCount'] as num?)?.toInt() ?? 0,
+      idDisciplina: json['subjectId'] as int,
+      nomeDisciplina: json['subjectName'] as String? ?? '',
+      corHexDisciplina: json['subjectColor'] as String? ?? '#4F46E5',
+      totalSegundosEstudo: (json['totalStudySeconds'] as num?)?.toInt() ?? 0,
+      totalQuestoes: (json['totalQuestions'] as num?)?.toInt() ?? 0,
+      totalAcertos: (json['totalCorrect'] as num?)?.toInt() ?? 0,
+      taxaAcerto: (json['accuracyRate'] as num?)?.toDouble() ?? 0.0,
+      totalPaginasLidas: (json['totalPagesRead'] as num?)?.toInt() ?? 0,
+      quantidadeSessoes: (json['sessionCount'] as num?)?.toInt() ?? 0,
     );
   }
 }
 
 class DashboardStats {
-  final int totalStudySeconds;
-  final int totalSessions;
-  final int totalQuestions;
-  final int totalCorrect;
-  final double overallAccuracyRate;
-  final int totalPagesRead;
-  final List<SubjectMetric> subjectMetrics;
-  final List<StudySession> recentSessions;
+  final int totalSegundosEstudo;
+  final int totalSessoes;
+  final int totalQuestoes;
+  final int totalAcertos;
+  final double taxaAcertoGeral;
+  final int totalPaginasLidas;
+  final List<SubjectMetric> metricasDisciplinas;
+  final List<StudySession> sessoesRecentes;
 
   DashboardStats({
-    required this.totalStudySeconds,
-    required this.totalSessions,
-    required this.totalQuestions,
-    required this.totalCorrect,
-    required this.overallAccuracyRate,
-    required this.totalPagesRead,
-    required this.subjectMetrics,
-    required this.recentSessions,
+    required this.totalSegundosEstudo,
+    required this.totalSessoes,
+    required this.totalQuestoes,
+    required this.totalAcertos,
+    required this.taxaAcertoGeral,
+    required this.totalPaginasLidas,
+    required this.metricasDisciplinas,
+    required this.sessoesRecentes,
   });
 
-  String get formattedTotalTime {
-    final hours = totalStudySeconds ~/ 3600;
-    final minutes = (totalStudySeconds % 3600) ~/ 60;
-    return '${hours}h ${minutes.toString().padLeft(2, '0')}m';
+  String get tempoTotalFormatado {
+    final horas = totalSegundosEstudo ~/ 3600;
+    final minutos = (totalSegundosEstudo % 3600) ~/ 60;
+    return '${horas}h ${minutos.toString().padLeft(2, '0')}m';
   }
 
   factory DashboardStats.fromJson(Map<String, dynamic> json) {
     return DashboardStats(
-      totalStudySeconds: (json['totalStudySeconds'] as num?)?.toInt() ?? 0,
-      totalSessions: (json['totalSessions'] as num?)?.toInt() ?? 0,
-      totalQuestions: (json['totalQuestions'] as num?)?.toInt() ?? 0,
-      totalCorrect: (json['totalCorrect'] as num?)?.toInt() ?? 0,
-      overallAccuracyRate:
+      totalSegundosEstudo: (json['totalStudySeconds'] as num?)?.toInt() ?? 0,
+      totalSessoes: (json['totalSessions'] as num?)?.toInt() ?? 0,
+      totalQuestoes: (json['totalQuestions'] as num?)?.toInt() ?? 0,
+      totalAcertos: (json['totalCorrect'] as num?)?.toInt() ?? 0,
+      taxaAcertoGeral:
           (json['overallAccuracyRate'] as num?)?.toDouble() ?? 0.0,
-      totalPagesRead: (json['totalPagesRead'] as num?)?.toInt() ?? 0,
-      subjectMetrics: (json['subjectMetrics'] as List<dynamic>? ?? [])
-          .map((m) => SubjectMetric.fromJson(m as Map<String, dynamic>))
+      totalPaginasLidas: (json['totalPagesRead'] as num?)?.toInt() ?? 0,
+      metricasDisciplinas: (json['subjectMetrics'] as List<dynamic>? ?? [])
+          .map((item) => SubjectMetric.fromJson(item as Map<String, dynamic>))
           .toList(),
-      recentSessions: (json['recentSessions'] as List<dynamic>? ?? [])
-          .map((s) => StudySession.fromJson(s as Map<String, dynamic>))
+      sessoesRecentes: (json['recentSessions'] as List<dynamic>? ?? [])
+          .map((item) => StudySession.fromJson(item as Map<String, dynamic>))
           .toList(),
     );
   }

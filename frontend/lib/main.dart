@@ -12,7 +12,7 @@ void main() {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) => AuthProvider()..checkAuthStatus(),
+          create: (_) => AuthProvider()..verificarStatusAutenticacao(),
         ),
         ChangeNotifierProvider(
           create: (_) => StudyProvider(),
@@ -31,31 +31,31 @@ class EstudaiApp extends StatefulWidget {
 }
 
 class _EstudaiAppState extends State<EstudaiApp> {
-  ThemeMode _themeMode = ThemeMode.system;
+  ThemeMode _modoTema = ThemeMode.system;
 
-  void _toggleTheme() {
+  void _alternarTema() {
     setState(() {
-      if (_themeMode == ThemeMode.dark) {
-        _themeMode = ThemeMode.light;
+      if (_modoTema == ThemeMode.dark) {
+        _modoTema = ThemeMode.light;
       } else {
-        _themeMode = ThemeMode.dark;
+        _modoTema = ThemeMode.dark;
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    final isDark = _themeMode == ThemeMode.dark;
+    final ehModoEscuro = _modoTema == ThemeMode.dark;
 
     return MaterialApp(
       title: 'EstudAI - Ciclo e Registro de Estudos',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: _themeMode,
+      theme: AppTheme.temaClaro,
+      darkTheme: AppTheme.temaEscuro,
+      themeMode: _modoTema,
       home: Consumer<AuthProvider>(
-        builder: (context, auth, _) {
-          if (auth.isLoading) {
+        builder: (contexto, provedorAutenticacao, _) {
+          if (provedorAutenticacao.estaCarregando) {
             return Scaffold(
               body: Center(
                 child: Column(
@@ -85,10 +85,10 @@ class _EstudaiAppState extends State<EstudaiApp> {
             );
           }
 
-          if (auth.isAuthenticated) {
+          if (provedorAutenticacao.estaAutenticado) {
             return MainNavigationScreen(
-              onToggleTheme: _toggleTheme,
-              isDarkMode: isDark,
+              aoAlternarTema: _alternarTema,
+              ehModoEscuro: ehModoEscuro,
             );
           }
 

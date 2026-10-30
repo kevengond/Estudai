@@ -8,28 +8,31 @@ import 'package:provider/provider.dart';
 class SubjectsScreen extends StatelessWidget {
   const SubjectsScreen({super.key});
 
-  static const List<String> availableColors = [
-    '#4F46E5', // Indigo
-    '#0891B2', // Cyan
-    '#059669', // Emerald
-    '#D97706', // Amber
-    '#DC2626', // Red
-    '#9333EA', // Purple
-    '#DB2777', // Pink
-    '#2563EB', // Blue
-    '#475569', // Slate
+  static const List<String> coresDisponiveis = [
+    '#4F46E5', // Índigo
+    '#0891B2', // Ciano
+    '#059669', // Esmeralda
+    '#D97706', // Âmbar
+    '#DC2626', // Vermelho
+    '#9333EA', // Roxo
+    '#DB2777', // Rosa
+    '#2563EB', // Azul
+    '#475569', // Ardósia
   ];
+
+  static List<String> get availableColors => coresDisponiveis;
 
   @override
   Widget build(BuildContext context) {
-    final studyProvider = context.watch<StudyProvider>();
-    final subjects = studyProvider.subjects;
-    final selectedGroup = studyProvider.selectedGroup;
-    final theme = Theme.of(context);
+    final provedorEstudo = context.watch<StudyProvider>();
+    final disciplinas = provedorEstudo.disciplinas;
+    final grupoSelecionado = provedorEstudo.grupoSelecionado;
+    final tema = Theme.of(context);
+    final ehModoEscuro = tema.brightness == Brightness.dark;
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _showAddEditSubjectDialog(context),
+        onPressed: () => _exibirDialogoAdicionarEditarDisciplina(context),
         icon: const Icon(Icons.add_rounded),
         label: const Text('Nova Disciplina'),
       ),
@@ -47,7 +50,7 @@ class SubjectsScreen extends StatelessWidget {
                     children: [
                       Text(
                         'Disciplinas 📚',
-                        style: theme.textTheme.titleLarge?.copyWith(
+                        style: tema.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                           letterSpacing: -0.5,
                         ),
@@ -56,7 +59,7 @@ class SubjectsScreen extends StatelessWidget {
                       Text(
                         'Ative/desative no ciclo ou edite metas.',
                         style: TextStyle(
-                          color: theme.brightness == Brightness.dark
+                          color: ehModoEscuro
                               ? Colors.grey.shade400
                               : Colors.grey.shade600,
                           fontSize: 13,
@@ -66,7 +69,7 @@ class SubjectsScreen extends StatelessWidget {
                   ),
                 ),
                 OutlinedButton.icon(
-                  onPressed: () => _showManageGroupsDialog(context),
+                  onPressed: () => _exibirDialogoGerenciarGrupos(context),
                   icon: const Icon(Icons.folder_special_rounded, size: 16),
                   label: const Text('Subgrupos', style: TextStyle(fontSize: 12)),
                   style: OutlinedButton.styleFrom(
@@ -77,38 +80,38 @@ class SubjectsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            // Active Group Banner
-            if (selectedGroup != null)
+            // Banner do Subgrupo Ativo
+            if (grupoSelecionado != null)
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: selectedGroup.color.withOpacity(0.1),
+                  color: grupoSelecionado.cor.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                   border:
-                      Border.all(color: selectedGroup.color.withOpacity(0.3)),
+                      Border.all(color: grupoSelecionado.cor.withOpacity(0.3)),
                 ),
                 child: Row(
                   children: [
                     Icon(Icons.layers_rounded,
-                        color: selectedGroup.color, size: 20),
+                        color: grupoSelecionado.cor, size: 20),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Subgrupo: ${selectedGroup.name}',
+                            'Subgrupo: ${grupoSelecionado.nome}',
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 13,
-                              color: selectedGroup.color,
+                              color: grupoSelecionado.cor,
                             ),
                           ),
-                          if (selectedGroup.description != null &&
-                              selectedGroup.description!.isNotEmpty)
+                          if (grupoSelecionado.descricao != null &&
+                              grupoSelecionado.descricao!.isNotEmpty)
                             Text(
-                              selectedGroup.description!,
+                              grupoSelecionado.descricao!,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 11,
@@ -123,11 +126,11 @@ class SubjectsScreen extends StatelessWidget {
               ),
             const SizedBox(height: 16),
 
-            if (subjects.isEmpty)
+            if (disciplinas.isEmpty)
               Container(
                 padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: theme.cardTheme.color,
+                  color: tema.cardTheme.color,
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: const Center(
@@ -155,20 +158,20 @@ class SubjectsScreen extends StatelessWidget {
               ListView.separated(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: subjects.length,
-                separatorBuilder: (context, index) =>
+                itemCount: disciplinas.length,
+                separatorBuilder: (contextoSeparador, indice) =>
                     const SizedBox(height: 10),
-                itemBuilder: (context, index) {
-                  final sub = subjects[index];
+                itemBuilder: (contextoItem, indice) {
+                  final disciplina = disciplinas[indice];
 
                   return Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
+                      color: tema.cardTheme.color,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(
-                        color: sub.active
-                            ? (theme.brightness == Brightness.dark
+                        color: disciplina.ativo
+                            ? (ehModoEscuro
                                 ? const Color(0xFF334155)
                                 : const Color(0xFFE2E8F0))
                             : Colors.grey.withOpacity(0.3),
@@ -180,13 +183,13 @@ class SubjectsScreen extends StatelessWidget {
                         Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: sub.active
-                                  ? sub.color
+                              backgroundColor: disciplina.ativo
+                                  ? disciplina.cor
                                   : Colors.grey.shade400,
                               radius: 16,
                               child: Text(
-                                sub.name.isNotEmpty
-                                    ? sub.name[0].toUpperCase()
+                                disciplina.nome.isNotEmpty
+                                    ? disciplina.nome[0].toUpperCase()
                                     : 'D',
                                 style: const TextStyle(
                                   color: Colors.white,
@@ -201,23 +204,23 @@ class SubjectsScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    sub.name,
+                                    disciplina.nome,
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 2,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
-                                      decoration: sub.active
+                                      decoration: disciplina.ativo
                                           ? null
                                           : TextDecoration.lineThrough,
-                                      color: sub.active
+                                      color: disciplina.ativo
                                           ? null
                                           : Colors.grey.shade500,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
                                   Text(
-                                    'Ordem #${sub.cycleOrder} • Meta: ${sub.targetMinutes}m • Total: ${(sub.totalStudySeconds / 3600).toStringAsFixed(1)}h',
+                                    'Ordem #${disciplina.ordemCiclo} • Meta: ${disciplina.metaMinutos}m • Total: ${(disciplina.totalSegundosEstudo / 3600).toStringAsFixed(1)}h',
                                     overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                       fontSize: 11,
@@ -231,8 +234,9 @@ class SubjectsScreen extends StatelessWidget {
                               icon: const Icon(Icons.edit_outlined, size: 18),
                               padding: const EdgeInsets.all(4),
                               constraints: const BoxConstraints(),
-                              onPressed: () => _showAddEditSubjectDialog(context,
-                                  subject: sub),
+                              onPressed: () => _exibirDialogoAdicionarEditarDisciplina(
+                                  context,
+                                  disciplina: disciplina),
                               tooltip: 'Editar',
                             ),
                             const SizedBox(width: 4),
@@ -242,7 +246,7 @@ class SubjectsScreen extends StatelessWidget {
                               padding: const EdgeInsets.all(4),
                               constraints: const BoxConstraints(),
                               onPressed: () =>
-                                  _confirmDeleteSubject(context, sub),
+                                  _confirmarExcluirDisciplina(context, disciplina),
                               tooltip: 'Excluir definitivamente',
                             ),
                           ],
@@ -254,11 +258,13 @@ class SubjectsScreen extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              sub.active ? '🟢 Ativa no Ciclo' : '⚪ Fora do Ciclo',
+                              disciplina.ativo
+                                  ? '🟢 Ativa no Ciclo'
+                                  : '⚪ Fora do Ciclo',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
-                                color: sub.active
+                                color: disciplina.ativo
                                     ? const Color(0xFF10B981)
                                     : Colors.grey.shade500,
                               ),
@@ -266,11 +272,11 @@ class SubjectsScreen extends StatelessWidget {
                             Transform.scale(
                               scale: 0.8,
                               child: Switch(
-                                value: sub.active,
+                                value: disciplina.ativo,
                                 activeThumbColor: const Color(0xFF10B981),
                                 onChanged: (_) async {
-                                  await studyProvider
-                                      .toggleSubjectActiveInCycle(sub);
+                                  await provedorEstudo
+                                      .alternarDisciplinaAtivaNoCiclo(disciplina);
                                 },
                               ),
                             ),
@@ -288,28 +294,31 @@ class SubjectsScreen extends StatelessWidget {
     );
   }
 
-  void _showAddEditSubjectDialog(BuildContext context, {Subject? subject}) {
-    final isEditing = subject != null;
-    final studyProvider = context.read<StudyProvider>();
-    final groups = studyProvider.groups;
+  void _exibirDialogoAdicionarEditarDisciplina(BuildContext contexto,
+      {Subject? disciplina}) {
+    final estaEditando = disciplina != null;
+    final provedorEstudo = contexto.read<StudyProvider>();
+    final grupos = provedorEstudo.grupos;
 
-    final nameController = TextEditingController(text: subject?.name ?? '');
-    final minutesController =
-        TextEditingController(text: '${subject?.targetMinutes ?? 60}');
-    String selectedColor = subject?.colorHex ?? availableColors.first;
-    bool active = subject?.active ?? true;
-    int? selectedGroupId = subject?.groupId ?? studyProvider.selectedGroup?.id;
+    final controladorNome =
+        TextEditingController(text: disciplina?.nome ?? '');
+    final controladorMinutos =
+        TextEditingController(text: '${disciplina?.metaMinutos ?? 60}');
+    String corSelecionada = disciplina?.corHex ?? coresDisponiveis.first;
+    bool ativaNoCiclo = disciplina?.ativo ?? true;
+    int? idGrupoSelecionado =
+        disciplina?.idGrupo ?? provedorEstudo.grupoSelecionado?.id;
 
     showDialog(
-      context: context,
-      builder: (dialogCtx) {
+      context: contexto,
+      builder: (contextoDialogo) {
         return StatefulBuilder(
-          builder: (ctx, setState) {
+          builder: (contextoEstado, definirEstadoInterno) {
             return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
               title: Text(
-                isEditing ? 'Editar Disciplina' : 'Nova Disciplina',
+                estaEditando ? 'Editar Disciplina' : 'Nova Disciplina',
                 style: const TextStyle(fontWeight: FontWeight.bold),
               ),
               content: SingleChildScrollView(
@@ -318,36 +327,36 @@ class SubjectsScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     TextField(
-                      controller: nameController,
+                      controller: controladorNome,
                       decoration: const InputDecoration(
                         labelText: 'Nome da Matéria',
                         hintText: 'Ex: Direito Constitucional',
                       ),
                     ),
                     const SizedBox(height: 14),
-                    if (groups.isNotEmpty) ...[
+                    if (grupos.isNotEmpty) ...[
                       DropdownButtonFormField<int?>(
-                        value: selectedGroupId,
+                        value: idGrupoSelecionado,
                         decoration: const InputDecoration(
                           labelText: 'Subgrupo / Concurso',
                           prefixIcon: Icon(Icons.folder_outlined),
                         ),
-                        items: groups.map((g) {
+                        items: grupos.map((grupoItem) {
                           return DropdownMenuItem<int?>(
-                            value: g.id,
-                            child: Text(g.name),
+                            value: grupoItem.id,
+                            child: Text(grupoItem.nome),
                           );
                         }).toList(),
-                        onChanged: (val) {
-                          setState(() {
-                            selectedGroupId = val;
+                        onChanged: (novoValor) {
+                          definirEstadoInterno(() {
+                            idGrupoSelecionado = novoValor;
                           });
                         },
                       ),
                       const SizedBox(height: 14),
                     ],
                     TextField(
-                      controller: minutesController,
+                      controller: controladorMinutos,
                       keyboardType: TextInputType.number,
                       decoration: const InputDecoration(
                         labelText: 'Meta de Estudo (minutos)',
@@ -364,29 +373,29 @@ class SubjectsScreen extends StatelessWidget {
                     Wrap(
                       spacing: 8,
                       runSpacing: 8,
-                      children: availableColors.map((hex) {
-                        final color = Color(int.parse(
-                            'FF${hex.replaceAll('#', '')}',
+                      children: coresDisponiveis.map((codigoHex) {
+                        final cor = Color(int.parse(
+                            'FF${codigoHex.replaceAll('#', '')}',
                             radix: 16));
-                        final isSelected = selectedColor == hex;
+                        final estaSelecionada = corSelecionada == codigoHex;
 
                         return GestureDetector(
                           onTap: () {
-                            setState(() {
-                              selectedColor = hex;
+                            definirEstadoInterno(() {
+                              corSelecionada = codigoHex;
                             });
                           },
                           child: Container(
                             width: 30,
                             height: 30,
                             decoration: BoxDecoration(
-                              color: color,
+                              color: cor,
                               shape: BoxShape.circle,
-                              border: isSelected
+                              border: estaSelecionada
                                   ? Border.all(color: Colors.white, width: 3)
                                   : null,
                             ),
-                            child: isSelected
+                            child: estaSelecionada
                                 ? const Icon(Icons.check,
                                     color: Colors.white, size: 16)
                                 : null,
@@ -397,10 +406,10 @@ class SubjectsScreen extends StatelessWidget {
                     const SizedBox(height: 16),
                     SwitchListTile(
                       title: const Text('Ativa no Ciclo de Estudos'),
-                      value: active,
-                      onChanged: (val) {
-                        setState(() {
-                          active = val;
+                      value: ativaNoCiclo,
+                      onChanged: (novoValor) {
+                        definirEstadoInterno(() {
+                          ativaNoCiclo = novoValor;
                         });
                       },
                       contentPadding: EdgeInsets.zero,
@@ -410,40 +419,40 @@ class SubjectsScreen extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
+                  onPressed: () => Navigator.pop(contextoDialogo),
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
                   onPressed: () async {
-                    final name = nameController.text.trim();
-                    final minutes =
-                        int.tryParse(minutesController.text.trim()) ?? 60;
+                    final nome = controladorNome.text.trim();
+                    final minutosMeta =
+                        int.tryParse(controladorMinutos.text.trim()) ?? 60;
 
-                    if (name.isEmpty) return;
+                    if (nome.isEmpty) return;
 
-                    if (isEditing) {
-                      await studyProvider.updateSubject(
-                        subject.id,
-                        name,
-                        selectedColor,
-                        active,
-                        minutes,
-                        groupId: selectedGroupId,
+                    if (estaEditando) {
+                      await provedorEstudo.atualizarDisciplina(
+                        disciplina.id,
+                        nome,
+                        corSelecionada,
+                        ativaNoCiclo,
+                        minutosMeta,
+                        idGrupo: idGrupoSelecionado,
                       );
                     } else {
-                      await studyProvider.addSubject(
-                        name,
-                        selectedColor,
-                        minutes,
-                        groupId: selectedGroupId,
+                      await provedorEstudo.adicionarDisciplina(
+                        nome,
+                        corSelecionada,
+                        minutosMeta,
+                        idGrupo: idGrupoSelecionado,
                       );
                     }
 
-                    if (context.mounted) {
-                      Navigator.pop(dialogCtx);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    if (contexto.mounted) {
+                      Navigator.pop(contextoDialogo);
+                      ScaffoldMessenger.of(contexto).showSnackBar(
                         SnackBar(
-                          content: Text(isEditing
+                          content: Text(estaEditando
                               ? 'Disciplina atualizada!'
                               : 'Disciplina cadastrada com sucesso!'),
                           backgroundColor: const Color(0xFF10B981),
@@ -451,7 +460,7 @@ class SubjectsScreen extends StatelessWidget {
                       );
                     }
                   },
-                  child: Text(isEditing ? 'Salvar' : 'Adicionar'),
+                  child: Text(estaEditando ? 'Salvar' : 'Adicionar'),
                 ),
               ],
             );
@@ -461,28 +470,28 @@ class SubjectsScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDeleteSubject(BuildContext context, Subject subject) {
+  void _confirmarExcluirDisciplina(BuildContext contexto, Subject disciplina) {
     showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
+      context: contexto,
+      builder: (contextoDialogo) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Excluir Disciplina'),
         content: Text(
-          'Deseja realmente excluir "${subject.name}"? Todas as sessões desta disciplina serão removidas permanentemente.',
+          'Deseja realmente excluir "${disciplina.nome}"? Todas as sessões desta disciplina serão removidas permanentemente.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(contextoDialogo),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              Navigator.pop(ctx);
-              final studyProvider = context.read<StudyProvider>();
-              await studyProvider.deleteSubject(subject.id);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+              Navigator.pop(contextoDialogo);
+              final provedorEstudo = contexto.read<StudyProvider>();
+              await provedorEstudo.excluirDisciplina(disciplina.id);
+              if (contexto.mounted) {
+                ScaffoldMessenger.of(contexto).showSnackBar(
                   const SnackBar(
                     content: Text('Disciplina excluída com sucesso.'),
                     backgroundColor: Colors.red,
@@ -497,13 +506,13 @@ class SubjectsScreen extends StatelessWidget {
     );
   }
 
-  void _showManageGroupsDialog(BuildContext context) {
+  void _exibirDialogoGerenciarGrupos(BuildContext contexto) {
     showDialog(
-      context: context,
-      builder: (ctx) {
+      context: contexto,
+      builder: (contextoDialogo) {
         return Consumer<StudyProvider>(
-          builder: (context, studyProvider, _) {
-            final groups = studyProvider.groups;
+          builder: (contextoConsumer, provedorEstudo, _) {
+            final grupos = provedorEstudo.grupos;
             return AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
@@ -517,32 +526,35 @@ class SubjectsScreen extends StatelessWidget {
                         color: Color(0xFF6366F1)),
                     tooltip: 'Novo Subgrupo',
                     onPressed: () {
-                      GroupSelectorWidget.showAddEditGroupDialog(context);
+                      GroupSelectorWidget.exibirDialogoAdicionarEditarGrupo(
+                          contexto);
                     },
                   ),
                 ],
               ),
               content: SizedBox(
                 width: 400,
-                child: groups.isEmpty
+                child: grupos.isEmpty
                     ? const Text('Nenhum subgrupo cadastrado.')
                     : ListView.separated(
                         shrinkWrap: true,
-                        itemCount: groups.length,
-                        separatorBuilder: (context, index) => const Divider(),
-                        itemBuilder: (context, index) {
-                          final g = groups[index];
+                        itemCount: grupos.length,
+                        separatorBuilder: (contextoSep, indice) =>
+                            const Divider(),
+                        itemBuilder: (contextoItem, indice) {
+                          final grupo = grupos[indice];
                           return ListTile(
                             contentPadding: EdgeInsets.zero,
                             leading: CircleAvatar(
-                              backgroundColor: g.color,
+                              backgroundColor: grupo.cor,
                               radius: 14,
                             ),
-                            title: Text(g.name,
+                            title: Text(grupo.nome,
                                 style: const TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14)),
-                            subtitle: Text('${g.totalSubjects} disciplinas'),
+                            subtitle:
+                                Text('${grupo.totalDisciplinas} disciplinas'),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
@@ -550,9 +562,11 @@ class SubjectsScreen extends StatelessWidget {
                                   icon: const Icon(Icons.edit_outlined,
                                       size: 18),
                                   onPressed: () {
-                                    GroupSelectorWidget.showAddEditGroupDialog(
-                                        context,
-                                        group: g);
+                                    GroupSelectorWidget
+                                        .exibirDialogoAdicionarEditarGrupo(
+                                      contexto,
+                                      grupo: grupo,
+                                    );
                                   },
                                 ),
                                 IconButton(
@@ -560,7 +574,7 @@ class SubjectsScreen extends StatelessWidget {
                                       size: 18, color: Colors.red),
                                   tooltip: 'Excluir em cascata',
                                   onPressed: () {
-                                    _confirmDeleteGroup(context, g);
+                                    _confirmarExcluirGrupo(contexto, grupo);
                                   },
                                 ),
                               ],
@@ -571,7 +585,7 @@ class SubjectsScreen extends StatelessWidget {
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(ctx),
+                  onPressed: () => Navigator.pop(contextoDialogo),
                   child: const Text('Fechar'),
                 ),
               ],
@@ -582,10 +596,10 @@ class SubjectsScreen extends StatelessWidget {
     );
   }
 
-  void _confirmDeleteGroup(BuildContext context, StudyGroup group) {
+  void _confirmarExcluirGrupo(BuildContext contexto, StudyGroup grupo) {
     showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
+      context: contexto,
+      builder: (contextoDialogo) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
@@ -605,7 +619,7 @@ class SubjectsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Tem certeza que deseja excluir o subgrupo "${group.name}"?',
+              'Tem certeza que deseja excluir o subgrupo "${grupo.nome}"?',
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 10),
@@ -617,7 +631,7 @@ class SubjectsScreen extends StatelessWidget {
                 border: Border.all(color: Colors.red.withOpacity(0.25)),
               ),
               child: Text(
-                '⚠️ ATENÇÃO: Esta ação é irreversível. Todas as ${group.totalSubjects} matérias vinculadas a este subgrupo e todo o histórico de sessões/estudos serão apagados em cascata permanentemente.',
+                '⚠️ ATENÇÃO: Esta ação é irreversível. Todas as ${grupo.totalDisciplinas} matérias vinculadas a este subgrupo e todo o histórico de sessões/estudos serão apagados em cascata permanentemente.',
                 style: TextStyle(
                   fontSize: 12,
                   color: Colors.red.shade700,
@@ -629,7 +643,7 @@ class SubjectsScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(contextoDialogo),
             child: const Text('Cancelar'),
           ),
           ElevatedButton.icon(
@@ -640,14 +654,14 @@ class SubjectsScreen extends StatelessWidget {
               foregroundColor: Colors.white,
             ),
             onPressed: () async {
-              Navigator.pop(ctx);
-              final studyProvider = context.read<StudyProvider>();
-              await studyProvider.deleteGroup(group.id);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+              Navigator.pop(contextoDialogo);
+              final provedorEstudo = contexto.read<StudyProvider>();
+              await provedorEstudo.excluirGrupo(grupo.id);
+              if (contexto.mounted) {
+                ScaffoldMessenger.of(contexto).showSnackBar(
                   SnackBar(
                     content: Text(
-                        'Subgrupo "${group.name}" e seus dados foram excluídos com sucesso.'),
+                        'Subgrupo "${grupo.nome}" e seus dados foram excluídos com sucesso.'),
                     backgroundColor: Colors.red,
                   ),
                 );

@@ -1,34 +1,56 @@
 import 'package:flutter/material.dart';
 
 class MetricCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String? subtitle;
-  final IconData icon;
-  final Color iconColor;
-  final Color? backgroundColor;
+  final String titulo;
+  final String valor;
+  final String? subtitulo;
+  final IconData icone;
+  final Color corIcone;
+  final Color? corFundo;
 
   const MetricCard({
     super.key,
-    required this.title,
-    required this.value,
-    this.subtitle,
-    required this.icon,
-    required this.iconColor,
-    this.backgroundColor,
-  });
+    String? titulo,
+    String? title,
+    String? valor,
+    String? value,
+    String? subtitulo,
+    String? subtitle,
+    IconData? icone,
+    IconData? icon,
+    Color? corIcone,
+    Color? iconColor,
+    Color? corFundo,
+    Color? backgroundColor,
+  })  : titulo = titulo ?? title ?? '',
+        valor = valor ?? value ?? '',
+        subtitulo = subtitulo ?? subtitle,
+        icone = icone ?? icon ?? Icons.info_outline,
+        corIcone = corIcone ?? iconColor ?? Colors.blue,
+        corFundo = corFundo ?? backgroundColor;
+    return MetricCard(
+      key: key,
+      titulo: title,
+      valor: value,
+      subtitulo: subtitle,
+      icone: icon,
+      corIcone: iconColor,
+      corFundo: backgroundColor,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final tema = Theme.of(context);
+    final ehModoEscuro = tema.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: backgroundColor ?? theme.cardTheme.color,
+        color: corFundo ?? tema.cardTheme.color,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.brightness == Brightness.dark
+          color: ehModoEscuro
               ? const Color(0xFF334155)
               : const Color(0xFFE2E8F0),
         ),
@@ -42,13 +64,13 @@ class MetricCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  title.toUpperCase(),
+                  titulo.toUpperCase(),
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.5,
-                    color: theme.brightness == Brightness.dark
+                    color: ehModoEscuro
                         ? Colors.grey.shade400
                         : Colors.grey.shade600,
                   ),
@@ -57,10 +79,10 @@ class MetricCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(6),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.12),
+                  color: corIcone.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: Icon(icon, color: iconColor, size: 16),
+                child: Icon(icone, color: corIcone, size: 16),
               ),
             ],
           ),
@@ -69,7 +91,7 @@ class MetricCard extends StatelessWidget {
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
             child: Text(
-              value,
+              valor,
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w800,
@@ -77,15 +99,15 @@ class MetricCard extends StatelessWidget {
               ),
             ),
           ),
-          if (subtitle != null) ...[
+          if (subtitulo != null) ...[
             const SizedBox(height: 2),
             Text(
-              subtitle!,
+              subtitulo!,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
               style: TextStyle(
                 fontSize: 11,
-                color: theme.brightness == Brightness.dark
+                color: ehModoEscuro
                     ? Colors.grey.shade400
                     : Colors.grey.shade600,
               ),

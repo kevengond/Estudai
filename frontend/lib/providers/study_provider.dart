@@ -8,657 +8,823 @@ import 'package:frontend/models/subject.dart';
 import 'package:frontend/services/api_service.dart';
 
 class StudyProvider extends ChangeNotifier {
-  bool _isLoading = false;
-  String? _errorMessage;
+  bool _estaCarregando = false;
+  String? _mensagemErro;
 
-  List<StudyGroup> _groups = [];
-  StudyGroup? _selectedGroup;
+  List<StudyGroup> _grupos = [];
+  StudyGroup? _grupoSelecionado;
 
-  List<Subject> _subjects = [];
-  NextStudySuggestion? _suggestion;
-  DashboardStats? _dashboardStats;
-  List<StudySession> _sessions = [];
+  List<Subject> _disciplinas = [];
+  NextStudySuggestion? _sugestao;
+  DashboardStats? _estatisticasPainel;
+  List<StudySession> _sessoes = [];
 
-  // Stopwatch / Timer State
-  Timer? _timer;
-  int _timerSeconds = 0;
-  bool _isTimerRunning = false;
-  bool _isTimerPaused = false;
+  // Estado do Cronômetro
+  Timer? _cronometro;
+  int _segundosCronometro = 0;
+  bool _cronometroEmExecucao = false;
+  bool _cronometroPausado = false;
 
-  // Form State for Recording
-  Subject? _selectedSubject;
-  StudyType _selectedStudyType = StudyType.questions;
-  String _topic = '';
-  String _notes = '';
+  // Estado do formulário de registro
+  Subject? _disciplinaSelecionada;
+  TipoEstudo _tipoEstudoSelecionado = TipoEstudo.questoes;
+  String _topico = '';
+  String _anotacoes = '';
 
-  // Questions mode state
-  int _totalQuestions = 0;
-  int _correctQuestions = 0;
+  // Estado do modo questões
+  int _totalQuestoes = 0;
+  int _questoesCorretas = 0;
 
-  // PDF mode state
-  String _materialTitle = '';
-  int _pageStopped = 0;
-  int _pagesReadCount = 0;
+  // Estado do modo PDF
+  String _tituloMaterial = '';
+  int _paginaParada = 0;
+  int _quantidadePaginasLidas = 0;
 
-  // Getters
-  bool get isLoading => _isLoading;
-  String? get errorMessage => _errorMessage;
+  // Getters em Português
+  bool get estaCarregando => _estaCarregando;
+  bool get isLoading => _estaCarregando;
 
-  List<StudyGroup> get groups => _groups;
-  StudyGroup? get selectedGroup => _selectedGroup;
+  String? get mensagemErro => _mensagemErro;
+  String? get errorMessage => _mensagemErro;
 
-  List<Subject> get subjects => _subjects;
-  List<Subject> get activeSubjects => _subjects.where((s) => s.active).toList();
-  NextStudySuggestion? get suggestion => _suggestion;
-  DashboardStats? get dashboardStats => _dashboardStats;
-  List<StudySession> get sessions => _sessions;
+  List<StudyGroup> get grupos => _grupos;
+  List<StudyGroup> get groups => _grupos;
 
-  int get timerSeconds => _timerSeconds;
-  bool get isTimerRunning => _isTimerRunning;
-  bool get isTimerPaused => _isTimerPaused;
+  StudyGroup? get grupoSelecionado => _grupoSelecionado;
+  StudyGroup? get selectedGroup => _grupoSelecionado;
 
-  Subject? get selectedSubject => _selectedSubject;
-  StudyType get selectedStudyType => _selectedStudyType;
-  String get topic => _topic;
-  String get notes => _notes;
-  int get totalQuestions => _totalQuestions;
-  int get correctQuestions => _correctQuestions;
-  String get materialTitle => _materialTitle;
-  int get pageStopped => _pageStopped;
-  int get pagesReadCount => _pagesReadCount;
+  List<Subject> get disciplinas => _disciplinas;
+  List<Subject> get subjects => _disciplinas;
 
-  double get currentAccuracyRate {
-    if (_totalQuestions <= 0) return 0.0;
-    return (_correctQuestions / _totalQuestions) * 100.0;
+  List<Subject> get disciplinasAtivas =>
+      _disciplinas.where((disciplina) => disciplina.ativo).toList();
+  List<Subject> get activeSubjects => disciplinasAtivas;
+
+  NextStudySuggestion? get sugestao => _sugestao;
+  NextStudySuggestion? get suggestion => _sugestao;
+
+  DashboardStats? get estatisticasPainel => _estatisticasPainel;
+  DashboardStats? get dashboardStats => _estatisticasPainel;
+
+  List<StudySession> get sessoes => _sessoes;
+  List<StudySession> get sessions => _sessoes;
+
+  int get segundosCronometro => _segundosCronometro;
+  int get timerSeconds => _segundosCronometro;
+
+  bool get cronometroEmExecucao => _cronometroEmExecucao;
+  bool get isTimerRunning => _cronometroEmExecucao;
+
+  bool get cronometroPausado => _cronometroPausado;
+  bool get isTimerPaused => _cronometroPausado;
+
+  Subject? get disciplinaSelecionada => _disciplinaSelecionada;
+  Subject? get selectedSubject => _disciplinaSelecionada;
+
+  TipoEstudo get tipoEstudoSelecionado => _tipoEstudoSelecionado;
+  TipoEstudo get selectedStudyType => _tipoEstudoSelecionado;
+
+  String get topico => _topico;
+  String get topic => _topico;
+
+  String get anotacoes => _anotacoes;
+  String get notes => _anotacoes;
+
+  int get totalQuestoes => _totalQuestoes;
+  int get totalQuestions => _totalQuestoes;
+
+  int get questoesCorretas => _questoesCorretas;
+  int get correctQuestions => _questoesCorretas;
+
+  String get tituloMaterial => _tituloMaterial;
+  String get materialTitle => _tituloMaterial;
+
+  int get paginaParada => _paginaParada;
+  int get pageStopped => _paginaParada;
+
+  int get quantidadePaginasLidas => _quantidadePaginasLidas;
+  int get pagesReadCount => _quantidadePaginasLidas;
+
+  double get taxaAcertoAtual {
+    if (_totalQuestoes <= 0) return 0.0;
+    return (_questoesCorretas / _totalQuestoes) * 100.0;
   }
+  double get currentAccuracyRate => taxaAcertoAtual;
 
-  String get formattedTimer {
-    final hours = _timerSeconds ~/ 3600;
-    final minutes = (_timerSeconds % 3600) ~/ 60;
-    final seconds = _timerSeconds % 60;
-    return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  String get cronometroFormatado {
+    final horas = _segundosCronometro ~/ 3600;
+    final minutos = (_segundosCronometro % 3600) ~/ 60;
+    final segundos = _segundosCronometro % 60;
+    return '${horas.toString().padLeft(2, '0')}:${minutos.toString().padLeft(2, '0')}:${segundos.toString().padLeft(2, '0')}';
   }
+  String get formattedTimer => cronometroFormatado;
 
-  // --- Initialization & Data Fetching ---
-  Future<void> loadAllData() async {
-    _isLoading = true;
-    _errorMessage = null;
+  // --- Inicialização e busca de dados ---
+  Future<void> carregarTodosDados() async {
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      await fetchGroups();
+      await buscarGrupos();
       await Future.wait([
-        fetchSubjects(),
-        fetchSuggestion(),
-        fetchDashboardStats(),
-        fetchSessions(),
+        buscarDisciplinas(),
+        buscarSugestao(),
+        buscarEstatisticasPainel(),
+        buscarSessoes(),
       ]);
-      if (_selectedSubject == null && _suggestion != null) {
-        syncWithCurrentSuggestion();
+      if (_disciplinaSelecionada == null && _sugestao != null) {
+        sincronizarComSugestaoAtual();
       }
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
     } finally {
-      _isLoading = false;
+      _estaCarregando = false;
       notifyListeners();
     }
   }
 
-  Future<void> fetchGroups() async {
+  Future<void> loadAllData() => carregarTodosDados();
+
+  Future<void> buscarGrupos() async {
     try {
-      _groups = await ApiService.getGroups();
-      if (_groups.isNotEmpty && _selectedGroup == null) {
-        _selectedGroup = _groups.first;
+      _grupos = await ApiService.buscarGrupos();
+      if (_grupos.isNotEmpty && _grupoSelecionado == null) {
+        _grupoSelecionado = _grupos.first;
       }
       notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
       notifyListeners();
     }
   }
 
-  void selectGroup(StudyGroup? group) {
-    if (_selectedGroup?.id == group?.id) return;
-    _selectedGroup = group;
-    _selectedSubject = null;
+  Future<void> fetchGroups() => buscarGrupos();
+
+  void selecionarGrupo(StudyGroup? grupo) {
+    if (_grupoSelecionado?.id == grupo?.id) return;
+    _grupoSelecionado = grupo;
+    _disciplinaSelecionada = null;
     notifyListeners();
-    refreshGroupData();
+    atualizarDadosGrupo();
   }
 
-  Future<void> refreshGroupData() async {
-    _isLoading = true;
+  void selectGroup(StudyGroup? group) => selecionarGrupo(group);
+
+  Future<void> atualizarDadosGrupo() async {
+    _estaCarregando = true;
     notifyListeners();
     try {
       await Future.wait([
-        fetchSubjects(),
-        fetchSuggestion(),
-        fetchDashboardStats(),
-        fetchSessions(),
+        buscarDisciplinas(),
+        buscarSugestao(),
+        buscarEstatisticasPainel(),
+        buscarSessoes(),
       ]);
-      if (!isTimerRunning && _suggestion != null) {
-        syncWithCurrentSuggestion();
+      if (!_cronometroEmExecucao && _sugestao != null) {
+        sincronizarComSugestaoAtual();
       }
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
     } finally {
-      _isLoading = false;
+      _estaCarregando = false;
       notifyListeners();
     }
   }
 
-  Future<void> fetchSubjects() async {
+  Future<void> refreshGroupData() => atualizarDadosGrupo();
+
+  Future<void> buscarDisciplinas() async {
     try {
-      _subjects = await ApiService.getSubjects(groupId: _selectedGroup?.id);
-      if (_selectedSubject == null && _subjects.isNotEmpty) {
-        _selectedSubject = _subjects.firstWhere((s) => s.active, orElse: () => _subjects.first);
+      _disciplinas = await ApiService.buscarDisciplinas(idGrupo: _grupoSelecionado?.id);
+      if (_disciplinaSelecionada == null && _disciplinas.isNotEmpty) {
+        _disciplinaSelecionada = _disciplinas.firstWhere(
+          (disciplina) => disciplina.ativo,
+          orElse: () => _disciplinas.first,
+        );
       }
       notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
       notifyListeners();
     }
   }
 
-  Future<void> fetchSuggestion() async {
+  Future<void> fetchSubjects() => buscarDisciplinas();
+
+  Future<void> buscarSugestao() async {
     try {
-      _suggestion = await ApiService.getNextStudySuggestion(groupId: _selectedGroup?.id);
+      _sugestao = await ApiService.buscarProximaSugestaoEstudo(idGrupo: _grupoSelecionado?.id);
       notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
       notifyListeners();
     }
   }
 
-  Future<void> fetchDashboardStats() async {
+  Future<void> fetchSuggestion() => buscarSugestao();
+
+  Future<void> buscarEstatisticasPainel() async {
     try {
-      _dashboardStats = await ApiService.getDashboardStats(groupId: _selectedGroup?.id);
+      _estatisticasPainel = await ApiService.buscarEstatisticasPainel(idGrupo: _grupoSelecionado?.id);
       notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
       notifyListeners();
     }
   }
 
-  Future<void> fetchSessions({int? subjectId}) async {
+  Future<void> fetchDashboardStats() => buscarEstatisticasPainel();
+
+  Future<void> buscarSessoes({int? idDisciplina}) async {
     try {
-      _sessions = await ApiService.getSessions(subjectId: subjectId);
-      if (_selectedGroup != null && subjectId == null) {
-        final subIds = _subjects.map((s) => s.id).toSet();
-        _sessions = _sessions.where((s) => subIds.contains(s.subjectId)).toList();
+      _sessoes = await ApiService.buscarSessoes(idDisciplina: idDisciplina);
+      if (_grupoSelecionado != null && idDisciplina == null) {
+        final conjuntoIdsDisciplinas = _disciplinas.map((disciplina) => disciplina.id).toSet();
+        _sessoes = _sessoes
+            .where((sessao) => conjuntoIdsDisciplinas.contains(sessao.idDisciplina))
+            .toList();
       }
       notifyListeners();
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
       notifyListeners();
     }
   }
 
-  // --- Timer Controls ---
-  void startTimer() {
-    if (_isTimerRunning) return;
-    _isTimerRunning = true;
-    _isTimerPaused = false;
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      _timerSeconds++;
+  Future<void> fetchSessions({int? subjectId}) => buscarSessoes(idDisciplina: subjectId);
+
+  // --- Controles do Cronômetro ---
+  void iniciarCronometro() {
+    if (_cronometroEmExecucao) return;
+    _cronometroEmExecucao = true;
+    _cronometroPausado = false;
+    _cronometro = Timer.periodic(const Duration(seconds: 1), (_) {
+      _segundosCronometro++;
       notifyListeners();
     });
     notifyListeners();
   }
 
-  void pauseTimer() {
-    if (!_isTimerRunning) return;
-    _timer?.cancel();
-    _isTimerRunning = false;
-    _isTimerPaused = true;
+  void startTimer() => iniciarCronometro();
+
+  void pausarCronometro() {
+    if (!_cronometroEmExecucao) return;
+    _cronometro?.cancel();
+    _cronometroEmExecucao = false;
+    _cronometroPausado = true;
     notifyListeners();
   }
 
-  void resumeTimer() {
-    if (_isTimerRunning) return;
-    startTimer();
+  void pauseTimer() => pausarCronometro();
+
+  void retomarCronometro() {
+    if (_cronometroEmExecucao) return;
+    iniciarCronometro();
   }
 
-  void resetTimer() {
-    _timer?.cancel();
-    _timerSeconds = 0;
-    _isTimerRunning = false;
-    _isTimerPaused = false;
+  void resumeTimer() => retomarCronometro();
+
+  void redefinirCronometro() {
+    _cronometro?.cancel();
+    _segundosCronometro = 0;
+    _cronometroEmExecucao = false;
+    _cronometroPausado = false;
     notifyListeners();
   }
 
-  void setManualDuration(int seconds) {
-    _timerSeconds = seconds;
+  void resetTimer() => redefinirCronometro();
+
+  void definirDuracaoManual(int segundos) {
+    _segundosCronometro = segundos;
     notifyListeners();
   }
 
-  // --- Form Setters ---
-  void setSelectedSubject(Subject? subject) {
-    _selectedSubject = subject;
+  void setManualDuration(int seconds) => definirDuracaoManual(seconds);
+
+  // --- Modificadores do Formulário ---
+  void definirDisciplinaSelecionada(Subject? disciplina) {
+    _disciplinaSelecionada = disciplina;
     notifyListeners();
   }
 
-  void setSelectedStudyType(StudyType type) {
-    _selectedStudyType = type;
+  void setSelectedSubject(Subject? subject) => definirDisciplinaSelecionada(subject);
+
+  void definirTipoEstudoSelecionado(TipoEstudo tipo) {
+    _tipoEstudoSelecionado = tipo;
     notifyListeners();
   }
 
-  void setTopic(String val) {
-    _topic = val;
+  void setSelectedStudyType(TipoEstudo type) => definirTipoEstudoSelecionado(type);
+
+  void definirTopico(String valor) {
+    _topico = valor;
     notifyListeners();
   }
 
-  void setNotes(String val) {
-    _notes = val;
+  void setTopic(String val) => definirTopico(val);
+
+  void definirAnotacoes(String valor) {
+    _anotacoes = valor;
     notifyListeners();
   }
 
-  void setTotalQuestions(int val) {
-    _totalQuestions = val;
-    if (_correctQuestions > _totalQuestions) {
-      _correctQuestions = _totalQuestions;
+  void setNotes(String val) => definirAnotacoes(val);
+
+  void definirTotalQuestoes(int valor) {
+    _totalQuestoes = valor;
+    if (_questoesCorretas > _totalQuestoes) {
+      _questoesCorretas = _totalQuestoes;
     }
     notifyListeners();
   }
 
-  void setCorrectQuestions(int val) {
-    _correctQuestions = val;
+  void setTotalQuestions(int val) => definirTotalQuestoes(val);
+
+  void definirQuestoesCorretas(int valor) {
+    _questoesCorretas = valor;
     notifyListeners();
   }
 
-  void setMaterialTitle(String val) {
-    _materialTitle = val;
+  void setCorrectQuestions(int val) => definirQuestoesCorretas(val);
+
+  void definirTituloMaterial(String valor) {
+    _tituloMaterial = valor;
     notifyListeners();
   }
 
-  void setPageStopped(int val) {
-    _pageStopped = val;
+  void setMaterialTitle(String val) => definirTituloMaterial(val);
+
+  void definirPaginaParada(int valor) {
+    _paginaParada = valor;
     notifyListeners();
   }
 
-  void setPagesReadCount(int val) {
-    _pagesReadCount = val;
+  void setPageStopped(int val) => definirPaginaParada(val);
+
+  void definirQuantidadePaginasLidas(int valor) {
+    _quantidadePaginasLidas = valor;
     notifyListeners();
   }
 
-  // --- Pre-fill from Suggestion ---
-  void prepareFromSuggestion(NextStudySuggestion sugg, {bool resetTimerOnPrepare = true}) {
-    if (sugg.suggestedSubject != null) {
-      final match = _subjects.firstWhere(
-        (s) => s.id == sugg.suggestedSubject!.id,
-        orElse: () => sugg.suggestedSubject!,
+  void setPagesReadCount(int val) => definirQuantidadePaginasLidas(val);
+
+  // --- Pré-preenchimento a partir de sugestão ---
+  void prepararAPartirDeSugestao(
+    NextStudySuggestion sugestaoEstudo, {
+    bool redefinirCronometroAoPreparar = true,
+  }) {
+    if (sugestaoEstudo.disciplinaSugerida != null) {
+      final correspondencia = _disciplinas.firstWhere(
+        (disciplina) => disciplina.id == sugestaoEstudo.disciplinaSugerida!.id,
+        orElse: () => sugestaoEstudo.disciplinaSugerida!,
       );
-      _selectedSubject = match;
+      _disciplinaSelecionada = correspondencia;
     }
 
-    if (sugg.suggestionType != null) {
-      _selectedStudyType = sugg.suggestionType!;
+    if (sugestaoEstudo.tipoEstudoSugerido != null) {
+      _tipoEstudoSelecionado = sugestaoEstudo.tipoEstudoSugerido!;
     }
 
-    if (sugg.suggestionType == StudyType.pdf) {
-      _materialTitle = sugg.suggestedMaterialOrTopic ?? '';
-      _pageStopped = sugg.suggestedPage ?? 0;
-      _pagesReadCount = 0;
-      _topic = '';
+    if (sugestaoEstudo.tipoEstudoSugerido == TipoEstudo.pdf) {
+      _tituloMaterial = sugestaoEstudo.materialOuTopicoSugerido ?? '';
+      _paginaParada = sugestaoEstudo.paginaSugerida ?? 0;
+      _quantidadePaginasLidas = 0;
+      _topico = '';
     } else {
-      _topic = sugg.suggestedMaterialOrTopic ?? '';
-      if (_topic == 'Introdução / Bloco Inicial') _topic = '';
-      _totalQuestions = sugg.suggestedQuestionsBatch ?? 20;
-      _correctQuestions = 0;
-      _materialTitle = '';
-      _pageStopped = 0;
-      _pagesReadCount = 0;
+      _topico = sugestaoEstudo.materialOuTopicoSugerido ?? '';
+      if (_topico == 'Introdução / Bloco Inicial') _topico = '';
+      _totalQuestoes = sugestaoEstudo.loteQuestoesSugerido ?? 20;
+      _questoesCorretas = 0;
+      _tituloMaterial = '';
+      _paginaParada = 0;
+      _quantidadePaginasLidas = 0;
     }
 
-    if (resetTimerOnPrepare) {
-      resetTimer();
+    if (redefinirCronometroAoPreparar) {
+      redefinirCronometro();
     }
     notifyListeners();
   }
 
-  void syncWithCurrentSuggestion({bool force = false}) {
-    if (_suggestion != null && (!isTimerRunning || force)) {
-      prepareFromSuggestion(_suggestion!, resetTimerOnPrepare: false);
+  void prepareFromSuggestion(NextStudySuggestion sugg, {bool resetTimerOnPrepare = true}) =>
+      prepararAPartirDeSugestao(sugg, redefinirCronometroAoPreparar: resetTimerOnPrepare);
+
+  void sincronizarComSugestaoAtual({bool forcar = false}) {
+    if (_sugestao != null && (!_cronometroEmExecucao || forcar)) {
+      prepararAPartirDeSugestao(_sugestao!, redefinirCronometroAoPreparar: false);
     }
   }
 
-  void prepareFromSubject(Subject subject) {
-    _selectedSubject = subject;
-    // Buscar última sessão registrada nesta matéria para recuperar checkpoint
-    final lastSession = _sessions.where((s) => s.subjectId == subject.id).firstOrNull;
-    if (lastSession != null) {
-      _selectedStudyType = lastSession.studyType;
-      if (lastSession.studyType == StudyType.pdf) {
-        _materialTitle = lastSession.materialTitle ?? lastSession.topic ?? '';
-        _pageStopped = lastSession.pageStopped ?? 0;
-        _pagesReadCount = 0;
-        _topic = '';
+  void syncWithCurrentSuggestion({bool force = false}) =>
+      sincronizarComSugestaoAtual(forcar: force);
+
+  void prepararAPartirDeDisciplina(Subject disciplina) {
+    _disciplinaSelecionada = disciplina;
+    final ultimaSessao = _sessoes
+        .where((sessao) => sessao.idDisciplina == disciplina.id)
+        .firstOrNull;
+
+    if (ultimaSessao != null) {
+      _tipoEstudoSelecionado = ultimaSessao.tipoEstudo;
+      if (ultimaSessao.tipoEstudo == TipoEstudo.pdf) {
+        _tituloMaterial =
+            ultimaSessao.tituloMaterial ?? ultimaSessao.topico ?? '';
+        _paginaParada = ultimaSessao.paginaParada ?? 0;
+        _quantidadePaginasLidas = 0;
+        _topico = '';
       } else {
-        _topic = lastSession.topic ?? '';
-        _totalQuestions = lastSession.totalQuestions ?? 20;
-        _correctQuestions = 0;
-        _materialTitle = '';
-        _pageStopped = 0;
-        _pagesReadCount = 0;
+        _topico = ultimaSessao.topico ?? '';
+        _totalQuestoes = ultimaSessao.totalQuestoes ?? 20;
+        _questoesCorretas = 0;
+        _tituloMaterial = '';
+        _paginaParada = 0;
+        _quantidadePaginasLidas = 0;
       }
     } else {
-      _selectedStudyType = StudyType.questions;
-      _topic = '';
-      _totalQuestions = 20;
-      _correctQuestions = 0;
-      _materialTitle = '';
-      _pageStopped = 0;
-      _pagesReadCount = 0;
+      _tipoEstudoSelecionado = TipoEstudo.questoes;
+      _topico = '';
+      _totalQuestoes = 20;
+      _questoesCorretas = 0;
+      _tituloMaterial = '';
+      _paginaParada = 0;
+      _quantidadePaginasLidas = 0;
     }
-    resetTimer();
+    redefinirCronometro();
     notifyListeners();
   }
 
-  // --- Save Session ---
-  Future<bool> saveCurrentSession() async {
-    if (_selectedSubject == null) {
-      _errorMessage = 'Selecione uma disciplina para registrar o estudo.';
+  void prepareFromSubject(Subject subject) =>
+      prepararAPartirDeDisciplina(subject);
+
+  // --- Salvar Sessão ---
+  Future<bool> salvarSessaoAtual() async {
+    if (_disciplinaSelecionada == null) {
+      _mensagemErro = 'Selecione uma disciplina para registrar o estudo.';
       notifyListeners();
       return false;
     }
 
-    if (_timerSeconds <= 0) {
-      _errorMessage = 'O tempo de estudo deve ser maior que zero.';
+    if (_segundosCronometro <= 0) {
+      _mensagemErro = 'O tempo de estudo deve ser maior que zero.';
       notifyListeners();
       return false;
     }
 
-    _isLoading = true;
-    _errorMessage = null;
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      final data = {
-        'subjectId': _selectedSubject!.id,
-        'studyType': studyTypeToString(_selectedStudyType),
-        'durationSeconds': _timerSeconds,
-        'topic': _topic.isNotEmpty ? _topic : null,
-        'notes': _notes.isNotEmpty ? _notes : null,
+      final dadosSessao = {
+        'subjectId': _disciplinaSelecionada!.id,
+        'studyType': tipoEstudoParaTexto(_tipoEstudoSelecionado),
+        'durationSeconds': _segundosCronometro,
+        'topic': _topico.isNotEmpty ? _topico : null,
+        'notes': _anotacoes.isNotEmpty ? _anotacoes : null,
         'sessionDate': DateTime.now().toIso8601String(),
-        'totalQuestions': _selectedStudyType == StudyType.questions ? _totalQuestions : null,
-        'correctQuestions': _selectedStudyType == StudyType.questions ? _correctQuestions : null,
-        'materialTitle': _selectedStudyType == StudyType.pdf ? _materialTitle : null,
-        'pageStopped': _selectedStudyType == StudyType.pdf ? _pageStopped : null,
-        'pagesReadCount': _selectedStudyType == StudyType.pdf ? _pagesReadCount : null,
+        'totalQuestions': _tipoEstudoSelecionado == TipoEstudo.questoes
+            ? _totalQuestoes
+            : null,
+        'correctQuestions': _tipoEstudoSelecionado == TipoEstudo.questoes
+            ? _questoesCorretas
+            : null,
+        'materialTitle': _tipoEstudoSelecionado == TipoEstudo.pdf
+            ? _tituloMaterial
+            : null,
+        'pageStopped': _tipoEstudoSelecionado == TipoEstudo.pdf
+            ? _paginaParada
+            : null,
+        'pagesReadCount': _tipoEstudoSelecionado == TipoEstudo.pdf
+            ? _quantidadePaginasLidas
+            : null,
       };
 
-      await ApiService.createSession(data);
-      resetTimer();
-      _topic = '';
-      _notes = '';
-      _totalQuestions = 0;
-      _correctQuestions = 0;
-      _materialTitle = '';
-      _pageStopped = 0;
-      _pagesReadCount = 0;
+      await ApiService.criarSessao(dadosSessao);
+      redefinirCronometro();
+      _topico = '';
+      _anotacoes = '';
+      _totalQuestoes = 0;
+      _questoesCorretas = 0;
+      _tituloMaterial = '';
+      _paginaParada = 0;
+      _quantidadePaginasLidas = 0;
 
       await Future.wait([
-        fetchGroups(),
-        fetchSubjects(),
-        fetchSuggestion(),
-        fetchDashboardStats(),
-        fetchSessions(),
+        buscarGrupos(),
+        buscarDisciplinas(),
+        buscarSugestao(),
+        buscarEstatisticasPainel(),
+        buscarSessoes(),
       ]);
 
-      // Ciclo X -> Y -> Z: após salvar, já deixa o formulário pré-preenchido
-      // com a próxima matéria do ciclo e o último conteúdo registrado nela
-      // (respeitando a ordem definida na aba Ciclo).
-      final next = _suggestion;
-      final nextSubject = next?.suggestedSubject;
-      if (next != null && nextSubject != null) {
+      final proximaSugestao = _sugestao;
+      final proximaDisciplina = proximaSugestao?.disciplinaSugerida;
+      if (proximaSugestao != null && proximaDisciplina != null) {
         try {
-          final match = _subjects.firstWhere(
-            (s) => s.id == nextSubject.id,
-            orElse: () => nextSubject,
+          final correspondente = _disciplinas.firstWhere(
+            (disciplina) => disciplina.id == proximaDisciplina.id,
+            orElse: () => proximaDisciplina,
           );
-          _selectedSubject = match;
+          _disciplinaSelecionada = correspondente;
         } catch (_) {
-          _selectedSubject = nextSubject;
+          _disciplinaSelecionada = proximaDisciplina;
         }
-        final nextType = next.suggestionType;
-        if (nextType != null) {
-          _selectedStudyType = nextType;
+
+        final proximoTipo = proximaSugestao.tipoEstudoSugerido;
+        if (proximoTipo != null) {
+          _tipoEstudoSelecionado = proximoTipo;
         }
-        if (nextType == StudyType.pdf) {
-          _materialTitle = next.suggestedMaterialOrTopic ?? '';
-          _pageStopped = next.suggestedPage ?? 0;
-          _pagesReadCount = 0;
-          _topic = '';
-        } else if (nextType == StudyType.questions) {
-          _topic = next.suggestedMaterialOrTopic ?? '';
-          // Se era "Introdução / Bloco Inicial" (matéria nova), limpa para digitar;
-          // caso contrário mantém o último tópico como ponto de partida.
-          if (_topic == 'Introdução / Bloco Inicial') _topic = '';
-          _totalQuestions = next.suggestedQuestionsBatch ?? 20;
-          _correctQuestions = 0;
-          _materialTitle = '';
-          _pageStopped = 0;
-          _pagesReadCount = 0;
+        if (proximoTipo == TipoEstudo.pdf) {
+          _tituloMaterial =
+              proximaSugestao.materialOuTopicoSugerido ?? '';
+          _paginaParada = proximaSugestao.paginaSugerida ?? 0;
+          _quantidadePaginasLidas = 0;
+          _topico = '';
+        } else if (proximoTipo == TipoEstudo.questoes) {
+          _topico = proximaSugestao.materialOuTopicoSugerido ?? '';
+          if (_topico == 'Introdução / Bloco Inicial') _topico = '';
+          _totalQuestoes = proximaSugestao.loteQuestoesSugerido ?? 20;
+          _questoesCorretas = 0;
+          _tituloMaterial = '';
+          _paginaParada = 0;
+          _quantidadePaginasLidas = 0;
         }
-        _notes = '';
+        _anotacoes = '';
       }
 
-      _isLoading = false;
+      _estaCarregando = false;
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
+      _estaCarregando = false;
       notifyListeners();
       return false;
     }
   }
 
-  // --- Study Group (Concurso) Management ---
-  Future<bool> addGroup(String name, String? description, String colorHex) async {
-    _isLoading = true;
-    _errorMessage = null;
+  Future<bool> saveCurrentSession() => salvarSessaoAtual();
+
+  // --- Gestão de Subgrupos / Concursos ---
+  Future<bool> adicionarGrupo(
+      String nome, String? descricao, String corHex) async {
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      final newGroup = await ApiService.createGroup({
-        'name': name,
-        'description': description,
-        'color': colorHex,
+      final novoGrupo = await ApiService.criarGrupo({
+        'name': nome,
+        'description': descricao,
+        'color': corHex,
         'active': true,
       });
-      await fetchGroups();
-      _selectedGroup = _groups.firstWhere((g) => g.id == newGroup.id, orElse: () => newGroup);
-      await refreshGroupData();
-      _isLoading = false;
+      await buscarGrupos();
+      _grupoSelecionado = _grupos.firstWhere(
+        (grupo) => grupo.id == novoGrupo.id,
+        orElse: () => novoGrupo,
+      );
+      await atualizarDadosGrupo();
+      _estaCarregando = false;
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
+      _estaCarregando = false;
       notifyListeners();
       return false;
     }
   }
 
-  Future<bool> updateGroup(int id, String name, String? description, String colorHex, bool active) async {
-    _isLoading = true;
-    _errorMessage = null;
+  Future<bool> addGroup(String name, String? description, String colorHex) =>
+      adicionarGrupo(name, description, colorHex);
+
+  Future<bool> atualizarGrupo(
+    int id,
+    String nome,
+    String? descricao,
+    String corHex,
+    bool ativo,
+  ) async {
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      await ApiService.updateGroup(id, {
-        'name': name,
-        'description': description,
-        'color': colorHex,
-        'active': active,
+      await ApiService.atualizarGrupo(id, {
+        'name': nome,
+        'description': descricao,
+        'color': corHex,
+        'active': ativo,
       });
-      await fetchGroups();
-      _isLoading = false;
+      await buscarGrupos();
+      _estaCarregando = false;
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
+      _estaCarregando = false;
       notifyListeners();
       return false;
     }
   }
 
-  Future<bool> deleteGroup(int id) async {
-    _isLoading = true;
-    _errorMessage = null;
+  Future<bool> updateGroup(int id, String name, String? description,
+          String colorHex, bool active) =>
+      atualizarGrupo(id, name, description, colorHex, active);
+
+  Future<bool> excluirGrupo(int id) async {
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      await ApiService.deleteGroup(id);
-      await fetchGroups();
-      _selectedGroup = _groups.isNotEmpty ? _groups.first : null;
-      await refreshGroupData();
-      _isLoading = false;
+      await ApiService.excluirGrupo(id);
+      await buscarGrupos();
+      _grupoSelecionado = _grupos.isNotEmpty ? _grupos.first : null;
+      await atualizarDadosGrupo();
+      _estaCarregando = false;
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
+      _estaCarregando = false;
       notifyListeners();
       return false;
     }
   }
 
-  // --- Subject Management ---
-  Future<bool> addSubject(String name, String colorHex, int targetMinutes, {int? groupId}) async {
-    _isLoading = true;
-    _errorMessage = null;
+  Future<bool> deleteGroup(int id) => excluirGrupo(id);
+
+  // --- Gestão de Disciplinas ---
+  Future<bool> adicionarDisciplina(
+    String nome,
+    String corHex,
+    int metaMinutos, {
+    int? idGrupo,
+  }) async {
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      await ApiService.createSubject({
-        'name': name,
-        'color': colorHex,
+      await ApiService.criarDisciplina({
+        'name': nome,
+        'color': corHex,
         'active': true,
-        'targetMinutes': targetMinutes,
-        'groupId': groupId ?? _selectedGroup?.id,
+        'targetMinutes': metaMinutos,
+        'groupId': idGrupo ?? _grupoSelecionado?.id,
       });
-      await fetchSubjects();
-      await fetchSuggestion();
-      await fetchGroups();
-      _isLoading = false;
+      await buscarDisciplinas();
+      await buscarSugestao();
+      await buscarGrupos();
+      _estaCarregando = false;
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
+      _estaCarregando = false;
       notifyListeners();
       return false;
     }
   }
 
-  Future<bool> updateSubject(int id, String name, String colorHex, bool active, int targetMinutes, {int? groupId}) async {
-    _isLoading = true;
-    _errorMessage = null;
+  Future<bool> addSubject(String name, String colorHex, int targetMinutes,
+          {int? groupId}) =>
+      adicionarDisciplina(name, colorHex, targetMinutes, idGrupo: groupId);
+
+  Future<bool> atualizarDisciplina(
+    int id,
+    String nome,
+    String corHex,
+    bool ativo,
+    int metaMinutos, {
+    int? idGrupo,
+  }) async {
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      await ApiService.updateSubject(id, {
-        'name': name,
-        'color': colorHex,
-        'active': active,
-        'targetMinutes': targetMinutes,
-        'groupId': groupId ?? _selectedGroup?.id,
+      await ApiService.atualizarDisciplina(id, {
+        'name': nome,
+        'color': corHex,
+        'active': ativo,
+        'targetMinutes': metaMinutos,
+        'groupId': idGrupo ?? _grupoSelecionado?.id,
       });
-      await fetchSubjects();
-      await fetchSuggestion();
-      _isLoading = false;
+      await buscarDisciplinas();
+      await buscarSugestao();
+      _estaCarregando = false;
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
+      _estaCarregando = false;
       notifyListeners();
       return false;
     }
   }
 
-  Future<bool> toggleSubjectActiveInCycle(Subject subject) async {
+  Future<bool> updateSubject(int id, String name, String colorHex, bool active,
+          int targetMinutes, {int? groupId}) =>
+      atualizarDisciplina(id, name, colorHex, active, targetMinutes,
+          idGrupo: groupId);
+
+  Future<bool> alternarDisciplinaAtivaNoCiclo(Subject disciplina) async {
     try {
-      final updated = await ApiService.toggleActiveInCycle(subject.id);
-      final index = _subjects.indexWhere((s) => s.id == subject.id);
-      if (index >= 0) {
-        _subjects[index] = updated;
+      final disciplinaAtualizada =
+          await ApiService.alternarAtivaNoCiclo(disciplina.id);
+      final indice =
+          _disciplinas.indexWhere((item) => item.id == disciplina.id);
+      if (indice >= 0) {
+        _disciplinas[indice] = disciplinaAtualizada;
       }
-      await fetchSubjects();
-      await fetchSuggestion();
-      syncWithCurrentSuggestion();
+      await buscarDisciplinas();
+      await buscarSugestao();
+      sincronizarComSugestaoAtual();
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
       notifyListeners();
       return false;
     }
   }
 
-  Future<bool> deleteSubject(int id) async {
-    _isLoading = true;
-    _errorMessage = null;
+  Future<bool> toggleSubjectActiveInCycle(Subject subject) =>
+      alternarDisciplinaAtivaNoCiclo(subject);
+
+  Future<bool> excluirDisciplina(int id) async {
+    _estaCarregando = true;
+    _mensagemErro = null;
     notifyListeners();
 
     try {
-      await ApiService.deleteSubject(id);
-      await fetchSubjects();
-      await fetchSuggestion();
-      await fetchDashboardStats();
-      await fetchGroups();
-      syncWithCurrentSuggestion();
-      _isLoading = false;
+      await ApiService.excluirDisciplina(id);
+      await buscarDisciplinas();
+      await buscarSugestao();
+      await buscarEstatisticasPainel();
+      await buscarGrupos();
+      sincronizarComSugestaoAtual();
+      _estaCarregando = false;
       notifyListeners();
       return true;
-    } catch (e) {
-      _errorMessage = e.toString();
-      _isLoading = false;
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
+      _estaCarregando = false;
       notifyListeners();
       return false;
     }
   }
 
-  Future<void> reorderCycle(List<int> subjectIds) async {
-    _isLoading = true;
+  Future<bool> deleteSubject(int id) => excluirDisciplina(id);
+
+  Future<void> reordenarCiclo(List<int> idsDisciplinas) async {
+    _estaCarregando = true;
     notifyListeners();
     try {
-      _subjects = await ApiService.reorderCycle(subjectIds, groupId: _selectedGroup?.id);
-      await fetchSuggestion();
-      syncWithCurrentSuggestion();
-    } catch (e) {
-      _errorMessage = e.toString();
+      _disciplinas = await ApiService.reordenarCiclo(idsDisciplinas,
+          idGrupo: _grupoSelecionado?.id);
+      await buscarSugestao();
+      sincronizarComSugestaoAtual();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
     } finally {
-      _isLoading = false;
+      _estaCarregando = false;
       notifyListeners();
     }
   }
 
-  Future<void> deleteSession(int id) async {
-    _isLoading = true;
+  Future<void> reorderCycle(List<int> subjectIds) =>
+      reordenarCiclo(subjectIds);
+
+  Future<void> excluirSessao(int id) async {
+    _estaCarregando = true;
     notifyListeners();
     try {
-      await ApiService.deleteSession(id);
+      await ApiService.excluirSessao(id);
       await Future.wait([
-        fetchSubjects(),
-        fetchSuggestion(),
-        fetchDashboardStats(),
-        fetchSessions(),
-        fetchGroups(),
+        buscarDisciplinas(),
+        buscarSugestao(),
+        buscarEstatisticasPainel(),
+        buscarSessoes(),
+        buscarGrupos(),
       ]);
-    } catch (e) {
-      _errorMessage = e.toString();
+    } catch (excecao) {
+      _mensagemErro = excecao.toString();
     } finally {
-      _isLoading = false;
+      _estaCarregando = false;
       notifyListeners();
     }
   }
+
+  Future<void> deleteSession(int id) => excluirSessao(id);
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _cronometro?.cancel();
     super.dispose();
   }
 }

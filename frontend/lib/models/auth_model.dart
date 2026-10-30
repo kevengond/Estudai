@@ -1,59 +1,59 @@
 class User {
   final int? id;
-  final String name;
-  final String username;
+  final String nome;
+  final String nomeUsuario;
   final String email;
-  final String? phone;
-  final String role;
+  final String? telefone;
+  final String papel;
 
   User({
     this.id,
-    required this.name,
-    required this.username,
+    required this.nome,
+    required this.nomeUsuario,
     required this.email,
-    this.phone,
-    required this.role,
+    this.telefone,
+    required this.papel,
   });
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as int?,
-      name: json['name'] as String? ?? '',
-      username: json['username'] as String? ?? '',
+      nome: json['name'] as String? ?? '',
+      nomeUsuario: json['username'] as String? ?? '',
       email: json['email'] as String? ?? '',
-      phone: json['phone'] as String?,
-      role: json['role'] as String? ?? 'ROLE_USER',
+      telefone: json['phone'] as String?,
+      papel: json['role'] as String? ?? 'ROLE_USER',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
-      'username': username,
+      'name': nome,
+      'username': nomeUsuario,
       'email': email,
-      'phone': phone,
-      'role': role,
+      'phone': telefone,
+      'role': papel,
     };
   }
 }
 
 class AuthResponse {
   final String token;
-  final String type;
-  final User user;
+  final String tipoToken;
+  final User usuario;
 
   AuthResponse({
     required this.token,
-    required this.type,
-    required this.user,
+    required this.tipoToken,
+    required this.usuario,
   });
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     return AuthResponse(
       token: json['token'] as String? ?? '',
-      type: json['type'] as String? ?? 'Bearer',
-      user: User.fromJson(json['user'] as Map<String, dynamic>? ?? {}),
+      tipoToken: json['type'] as String? ?? 'Bearer',
+      usuario: User.fromJson(json['user'] as Map<String, dynamic>? ?? {}),
     );
   }
 }

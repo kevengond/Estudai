@@ -2,48 +2,48 @@ import 'package:frontend/models/study_session.dart';
 import 'package:frontend/models/subject.dart';
 
 class NextStudySuggestion {
-  final Subject? suggestedSubject;
-  final StudySession? lastSession;
-  final StudyType? suggestionType;
-  final String resumeMessage;
-  final String checkpointDetail;
-  final String cycleStatus;
-  final bool isResumeLastContent;
-  final String? suggestedMaterialOrTopic;
-  final int? suggestedPage;
-  final int? suggestedQuestionsBatch;
+  final Subject? disciplinaSugerida;
+  final StudySession? ultimaSessao;
+  final TipoEstudo? tipoEstudoSugerido;
+  final String mensagemRetomada;
+  final String detalhePontoParada;
+  final String statusCiclo;
+  final bool ehRetomadaUltimoConteudo;
+  final String? materialOuTopicoSugerido;
+  final int? paginaSugerida;
+  final int? loteQuestoesSugerido;
 
   NextStudySuggestion({
-    this.suggestedSubject,
-    this.lastSession,
-    this.suggestionType,
-    required this.resumeMessage,
-    required this.checkpointDetail,
-    required this.cycleStatus,
-    required this.isResumeLastContent,
-    this.suggestedMaterialOrTopic,
-    this.suggestedPage,
-    this.suggestedQuestionsBatch,
+    this.disciplinaSugerida,
+    this.ultimaSessao,
+    this.tipoEstudoSugerido,
+    required this.mensagemRetomada,
+    required this.detalhePontoParada,
+    required this.statusCiclo,
+    required this.ehRetomadaUltimoConteudo,
+    this.materialOuTopicoSugerido,
+    this.paginaSugerida,
+    this.loteQuestoesSugerido,
   });
 
   factory NextStudySuggestion.fromJson(Map<String, dynamic> json) {
     return NextStudySuggestion(
-      suggestedSubject: json['suggestedSubject'] != null
+      disciplinaSugerida: json['suggestedSubject'] != null
           ? Subject.fromJson(json['suggestedSubject'] as Map<String, dynamic>)
           : null,
-      lastSession: json['lastSession'] != null
+      ultimaSessao: json['lastSession'] != null
           ? StudySession.fromJson(json['lastSession'] as Map<String, dynamic>)
           : null,
-      suggestionType: json['suggestionType'] != null
-          ? studyTypeFromString(json['suggestionType'] as String?)
+      tipoEstudoSugerido: json['suggestionType'] != null
+          ? tipoEstudoAPartirDeTexto(json['suggestionType'] as String?)
           : null,
-      resumeMessage: json['resumeMessage'] as String? ?? '',
-      checkpointDetail: json['checkpointDetail'] as String? ?? '',
-      cycleStatus: json['cycleStatus'] as String? ?? '',
-      isResumeLastContent: json['isResumeLastContent'] as bool? ?? false,
-      suggestedMaterialOrTopic: json['suggestedMaterialOrTopic'] as String?,
-      suggestedPage: (json['suggestedPage'] as num?)?.toInt(),
-      suggestedQuestionsBatch:
+      mensagemRetomada: json['resumeMessage'] as String? ?? '',
+      detalhePontoParada: json['checkpointDetail'] as String? ?? '',
+      statusCiclo: json['cycleStatus'] as String? ?? '',
+      ehRetomadaUltimoConteudo: json['isResumeLastContent'] as bool? ?? false,
+      materialOuTopicoSugerido: json['suggestedMaterialOrTopic'] as String?,
+      paginaSugerida: (json['suggestedPage'] as num?)?.toInt(),
+      loteQuestoesSugerido:
           (json['suggestedQuestionsBatch'] as num?)?.toInt(),
     );
   }

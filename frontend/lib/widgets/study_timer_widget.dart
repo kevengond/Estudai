@@ -7,23 +7,24 @@ class StudyTimerWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final studyProvider = context.watch<StudyProvider>();
-    final isRunning = studyProvider.isTimerRunning;
-    final isPaused = studyProvider.isTimerPaused;
-    final theme = Theme.of(context);
+    final provedorEstudo = context.watch<StudyProvider>();
+    final estaExecutando = provedorEstudo.cronometroEmExecucao;
+    final estaPausado = provedorEstudo.cronometroPausado;
+    final tema = Theme.of(context);
+    final ehModoEscuro = tema.brightness == Brightness.dark;
 
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
+        color: tema.cardTheme.color,
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: isRunning
-              ? theme.colorScheme.primary.withOpacity(0.5)
-              : (theme.brightness == Brightness.dark
+          color: estaExecutando
+              ? tema.colorScheme.primary.withOpacity(0.5)
+              : (ehModoEscuro
                   ? const Color(0xFF334155)
                   : const Color(0xFFE2E8F0)),
-          width: isRunning ? 2 : 1,
+          width: estaExecutando ? 2 : 1,
         ),
       ),
       child: Column(
@@ -35,7 +36,7 @@ class StudyTimerWidget extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.timer_outlined,
-                    color: isRunning ? theme.colorScheme.primary : Colors.grey,
+                    color: estaExecutando ? tema.colorScheme.primary : Colors.grey,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -45,16 +46,16 @@ class StudyTimerWidget extends StatelessWidget {
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.0,
-                      color: isRunning
-                          ? theme.colorScheme.primary
+                      color: estaExecutando
+                          ? tema.colorScheme.primary
                           : Colors.grey,
                     ),
                   ),
                 ],
               ),
-              if (studyProvider.timerSeconds > 0)
+              if (provedorEstudo.segundosCronometro > 0)
                 TextButton.icon(
-                  onPressed: studyProvider.resetTimer,
+                  onPressed: provedorEstudo.redefinirCronometro,
                   icon: const Icon(Icons.refresh_rounded, size: 16),
                   label: const Text('Zerar', style: TextStyle(fontSize: 12)),
                   style: TextButton.styleFrom(
@@ -65,60 +66,60 @@ class StudyTimerWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 16),
-          // Large digital stopwatch display
+          // Visor digital grande do cronômetro
           Container(
             padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
             decoration: BoxDecoration(
-              color: theme.brightness == Brightness.dark
+              color: ehModoEscuro
                   ? const Color(0xFF0F172A)
                   : const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
-              studyProvider.formattedTimer,
+              provedorEstudo.cronometroFormatado,
               style: TextStyle(
                 fontSize: 42,
                 fontWeight: FontWeight.w800,
                 letterSpacing: 2.0,
                 fontFamily: 'Courier',
-                color: isRunning
-                    ? theme.colorScheme.primary
-                    : (theme.brightness == Brightness.dark
+                color: estaExecutando
+                    ? tema.colorScheme.primary
+                    : (ehModoEscuro
                         ? Colors.white
                         : const Color(0xFF1E293B)),
               ),
             ),
           ),
           const SizedBox(height: 18),
-          // Timer Action Buttons
+          // Botões de ação do cronômetro
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              if (!isRunning) ...[
+              if (!estaExecutando) ...[
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: studyProvider.startTimer,
+                    onPressed: provedorEstudo.iniciarCronometro,
                     icon: Icon(
-                      isPaused
+                      estaPausado
                           ? Icons.play_arrow_rounded
                           : Icons.play_arrow_rounded,
                     ),
                     label: Text(
-                      isPaused ? 'Retomar' : 'Iniciar Cronômetro',
+                      estaPausado ? 'Retomar' : 'Iniciar Cronômetro',
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981), // Emerald
+                      backgroundColor: const Color(0xFF10B981), // Esmeralda
                     ),
                   ),
                 ),
               ] else ...[
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: studyProvider.pauseTimer,
+                    onPressed: provedorEstudo.pausarCronometro,
                     icon: const Icon(Icons.pause_rounded),
                     label: const Text('Pausar'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF59E0B), // Amber
+                      backgroundColor: const Color(0xFFF59E0B), // Âmbar
                     ),
                   ),
                 ),
@@ -126,14 +127,14 @@ class StudyTimerWidget extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          // Quick time presets (+15m, +30m, +45m, +60m)
+          // Atalhos rápidos de tempo (+15m, +30m, +45m, +60m)
           Wrap(
             spacing: 8,
             children: [
-              _buildPresetButton(context, '+15m', 15 * 60),
-              _buildPresetButton(context, '+30m', 30 * 60),
-              _buildPresetButton(context, '+45m', 45 * 60),
-              _buildPresetButton(context, '+60m', 60 * 60),
+              _construirBotaoPredefinicao(context, '+15m', 15 * 60),
+              _construirBotaoPredefinicao(context, '+30m', 30 * 60),
+              _construirBotaoPredefinicao(context, '+45m', 45 * 60),
+              _construirBotaoPredefinicao(context, '+60m', 60 * 60),
             ],
           ),
         ],
@@ -141,11 +142,17 @@ class StudyTimerWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildPresetButton(BuildContext context, String label, int seconds) {
-    final studyProvider = context.read<StudyProvider>();
+  Widget _construirBotaoPredefinicao(
+    BuildContext contexto,
+    String rotulo,
+    int segundosAdicionais,
+  ) {
+    final provedorEstudo = contexto.read<StudyProvider>();
     return OutlinedButton(
       onPressed: () {
-        studyProvider.setManualDuration(studyProvider.timerSeconds + seconds);
+        provedorEstudo.definirDuracaoManual(
+          provedorEstudo.segundosCronometro + segundosAdicionais,
+        );
       },
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -153,7 +160,7 @@ class StudyTimerWidget extends StatelessWidget {
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
-      child: Text(label, style: const TextStyle(fontSize: 12)),
+      child: Text(rotulo, style: const TextStyle(fontSize: 12)),
     );
   }
 }

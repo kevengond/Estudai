@@ -12,20 +12,25 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  StudyType? _typeFilter; // null = Todas, questions, pdf
-  int? _selectedSubjectId;
+  TipoEstudo? _filtroTipoEstudo; // null = Todas, questoes, pdf
+  int? _idDisciplinaSelecionada;
 
   @override
   Widget build(BuildContext context) {
-    final studyProvider = context.watch<StudyProvider>();
-    final allSessions = studyProvider.sessions;
-    final subjects = studyProvider.subjects;
-    final theme = Theme.of(context);
+    final provedorEstudo = context.watch<StudyProvider>();
+    final todasSessoes = provedorEstudo.sessoes;
+    final disciplinas = provedorEstudo.disciplinas;
+    final tema = Theme.of(context);
+    final ehModoEscuro = tema.brightness == Brightness.dark;
 
-    // Apply filters
-    final filteredSessions = allSessions.where((s) {
-      if (_typeFilter != null && s.studyType != _typeFilter) return false;
-      if (_selectedSubjectId != null && s.subjectId != _selectedSubjectId) {
+    // Aplicação dos filtros
+    final sessoesFiltradas = todasSessoes.where((sessao) {
+      if (_filtroTipoEstudo != null &&
+          sessao.tipoEstudo != _filtroTipoEstudo) {
+        return false;
+      }
+      if (_idDisciplinaSelecionada != null &&
+          sessao.idDisciplina != _idDisciplinaSelecionada) {
         return false;
       }
       return true;
@@ -38,7 +43,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         children: [
           Text(
             'Histórico de Estudos 📜',
-            style: theme.textTheme.headlineSmall?.copyWith(
+            style: tema.textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.w800,
               letterSpacing: -0.5,
             ),
@@ -47,7 +52,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Text(
             'Acompanhe todas as sessões registradas por questões e PDF.',
             style: TextStyle(
-              color: theme.brightness == Brightness.dark
+              color: ehModoEscuro
                   ? Colors.grey.shade400
                   : Colors.grey.shade600,
               fontSize: 14,
@@ -55,37 +60,39 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(height: 20),
 
-          // Filters Row
+          // Linha de Filtros
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
               FilterChip(
                 label: const Text('Todas as Sessões'),
-                selected: _typeFilter == null,
-                onSelected: (selected) {
+                selected: _filtroTipoEstudo == null,
+                onSelected: (estaSelecionado) {
                   setState(() {
-                    _typeFilter = null;
+                    _filtroTipoEstudo = null;
                   });
                 },
               ),
               FilterChip(
                 avatar: const Icon(Icons.format_list_numbered_rounded, size: 16),
                 label: const Text('Questões'),
-                selected: _typeFilter == StudyType.questions,
-                onSelected: (selected) {
+                selected: _filtroTipoEstudo == TipoEstudo.questoes,
+                onSelected: (estaSelecionado) {
                   setState(() {
-                    _typeFilter = selected ? StudyType.questions : null;
+                    _filtroTipoEstudo =
+                        estaSelecionado ? TipoEstudo.questoes : null;
                   });
                 },
               ),
               FilterChip(
                 avatar: const Icon(Icons.menu_book_rounded, size: 16),
                 label: const Text('PDF / Leituras'),
-                selected: _typeFilter == StudyType.pdf,
-                onSelected: (selected) {
+                selected: _filtroTipoEstudo == TipoEstudo.pdf,
+                onSelected: (estaSelecionado) {
                   setState(() {
-                    _typeFilter = selected ? StudyType.pdf : null;
+                    _filtroTipoEstudo =
+                        estaSelecionado ? TipoEstudo.pdf : null;
                   });
                 },
               ),
@@ -93,10 +100,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(height: 14),
 
-          // Subject dropdown filter if multiple subjects exist
-          if (subjects.isNotEmpty)
+          // Filtro suspenso por Disciplina
+          if (disciplinas.isNotEmpty)
             DropdownButtonFormField<int?>(
-              value: _selectedSubjectId,
+              value: _idDisciplinaSelecionada,
               decoration: const InputDecoration(
                 contentPadding:
                     EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -108,26 +115,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   value: null,
                   child: Text('Todas as Disciplinas'),
                 ),
-                ...subjects.map((sub) {
+                ...disciplinas.map((disciplina) {
                   return DropdownMenuItem<int?>(
-                    value: sub.id,
-                    child: Text(sub.name),
+                    value: disciplina.id,
+                    child: Text(disciplina.nome),
                   );
                 }),
               ],
-              onChanged: (val) {
+              onChanged: (novoId) {
                 setState(() {
-                  _selectedSubjectId = val;
+                  _idDisciplinaSelecionada = novoId;
                 });
               },
             ),
           const SizedBox(height: 24),
 
-          if (filteredSessions.isEmpty)
+          if (sessoesFiltradas.isEmpty)
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: theme.cardTheme.color,
+                color: tema.cardTheme.color,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: const Center(
@@ -148,20 +155,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ListView.separated(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: filteredSessions.length,
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
-              itemBuilder: (context, index) {
-                final sess = filteredSessions[index];
-                final isQ = sess.studyType == StudyType.questions;
-                final dateFormatted =
-                    DateFormat('dd/MM/yyyy • HH:mm').format(sess.sessionDate);
+              itemCount: sessoesFiltradas.length,
+              separatorBuilder: (contextoSeparador, indice) =>
+                  const SizedBox(height: 12),
+              itemBuilder: (contextoItem, indice) {
+                final sessao = sessoesFiltradas[indice];
+                final ehQuestoes =
+                    sessao.tipoEstudo == TipoEstudo.questoes;
+                final dataSessaoFormatada =
+                    DateFormat('dd/MM/yyyy • HH:mm').format(sessao.dataSessao);
 
                 return Container(
                   decoration: BoxDecoration(
-                    color: theme.cardTheme.color,
+                    color: tema.cardTheme.color,
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: theme.brightness == Brightness.dark
+                      color: ehModoEscuro
                           ? const Color(0xFF334155)
                           : const Color(0xFFE2E8F0),
                     ),
@@ -171,7 +180,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Top row: Subject badge + Date + Duration
+                        // Linha Superior: Disciplina + Duração
                         Wrap(
                           spacing: 8,
                           runSpacing: 6,
@@ -182,26 +191,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: sess.subjectColor.withOpacity(0.15),
+                                color: sessao.corDisciplina.withOpacity(0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(
-                                    isQ
+                                    ehQuestoes
                                         ? Icons.format_list_numbered_rounded
                                         : Icons.menu_book_rounded,
                                     size: 14,
-                                    color: sess.subjectColor,
+                                    color: sessao.corDisciplina,
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    sess.subjectName,
+                                    sessao.nomeDisciplina,
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
-                                      color: sess.subjectColor,
+                                      color: sessao.corDisciplina,
                                     ),
                                   ),
                                 ],
@@ -211,7 +220,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 10, vertical: 4),
                               decoration: BoxDecoration(
-                                color: theme.brightness == Brightness.dark
+                                color: ehModoEscuro
                                     ? const Color(0xFF0F172A)
                                     : const Color(0xFFF1F5F9),
                                 borderRadius: BorderRadius.circular(8),
@@ -223,7 +232,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                       size: 14, color: Colors.grey),
                                   const SizedBox(width: 4),
                                   Text(
-                                    sess.formattedDuration,
+                                    sessao.duracaoFormatada,
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,
@@ -236,10 +245,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ),
                         const SizedBox(height: 10),
 
-                        // Title / Topic
-                        if (sess.topic != null && sess.topic!.isNotEmpty)
+                        // Título / Tópico
+                        if (sessao.topico != null &&
+                            sessao.topico!.isNotEmpty)
                           Text(
-                            sess.topic!,
+                            sessao.topico!,
                             style: const TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.bold,
@@ -248,8 +258,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                         const SizedBox(height: 6),
 
-                        // Metrics content (Questions details or PDF details)
-                        if (isQ) ...[
+                        // Métricas específicas da sessão
+                        if (ehQuestoes) ...[
                           Wrap(
                             spacing: 8,
                             runSpacing: 4,
@@ -258,17 +268,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 8, vertical: 3),
                                 decoration: BoxDecoration(
-                                  color: (sess.accuracyRate ?? 0) >= 70
+                                  color: (sessao.taxaAcerto ?? 0) >= 70
                                       ? const Color(0xFF10B981).withOpacity(0.12)
                                       : const Color(0xFFF59E0B).withOpacity(0.12),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  '${sess.correctQuestions ?? 0} de ${sess.totalQuestions ?? 0} acertos (${(sess.accuracyRate ?? 0).toStringAsFixed(1)}%)',
+                                  '${sessao.questoesCorretas ?? 0} de ${sessao.totalQuestoes ?? 0} acertos (${(sessao.taxaAcerto ?? 0).toStringAsFixed(1)}%)',
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: (sess.accuracyRate ?? 0) >= 70
+                                    color: (sessao.taxaAcerto ?? 0) >= 70
                                         ? const Color(0xFF10B981)
                                         : const Color(0xFFF59E0B),
                                   ),
@@ -290,7 +300,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Text(
-                                  'Parou na Pág: ${sess.pageStopped ?? 0}${sess.pagesReadCount != null && sess.pagesReadCount! > 0 ? " • ${sess.pagesReadCount} pág lidas" : ""}',
+                                  'Parou na Pág: ${sessao.paginaParada ?? 0}${sessao.quantidadePaginasLidas != null && sessao.quantidadePaginasLidas! > 0 ? " • ${sessao.quantidadePaginasLidas} pág lidas" : ""}',
                                   style: const TextStyle(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -298,10 +308,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   ),
                                 ),
                               ),
-                              if (sess.materialTitle != null &&
-                                  sess.materialTitle!.isNotEmpty)
+                              if (sessao.tituloMaterial != null &&
+                                  sessao.tituloMaterial!.isNotEmpty)
                                 Text(
-                                  '(${sess.materialTitle})',
+                                  '(${sessao.tituloMaterial})',
                                   overflow: TextOverflow.ellipsis,
                                   style: TextStyle(
                                     fontSize: 12,
@@ -312,13 +322,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
                           ),
                         ],
 
-                        if (sess.notes != null && sess.notes!.isNotEmpty) ...[
+                        if (sessao.anotacoes != null &&
+                            sessao.anotacoes!.isNotEmpty) ...[
                           const SizedBox(height: 10),
                           Text(
-                            sess.notes!,
+                            sessao.anotacoes!,
                             style: TextStyle(
                               fontSize: 13,
-                              color: theme.brightness == Brightness.dark
+                              color: ehModoEscuro
                                   ? Colors.grey.shade300
                                   : Colors.grey.shade700,
                             ),
@@ -329,12 +340,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         const Divider(height: 1),
                         const SizedBox(height: 8),
 
-                        // Bottom date + Delete action
+                        // Rodapé: Data e Botão Excluir
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              dateFormatted,
+                              dataSessaoFormatada,
                               style: TextStyle(
                                 fontSize: 12,
                                 color: Colors.grey.shade500,
@@ -345,7 +356,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   size: 18, color: Colors.red),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
-                              onPressed: () => _confirmDeleteSession(context, sess),
+                              onPressed: () =>
+                                  _confirmarExclusaoSessao(context, sessao),
                               tooltip: 'Excluir registro',
                             ),
                           ],
@@ -361,10 +373,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     );
   }
 
-  void _confirmDeleteSession(BuildContext context, StudySession session) {
+  void _confirmarExclusaoSessao(
+      BuildContext contexto, StudySession sessao) {
     showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
+      context: contexto,
+      builder: (contextoDialogo) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Excluir Registro'),
         content: const Text(
@@ -372,17 +385,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(contextoDialogo),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              Navigator.pop(ctx);
-              final p = context.read<StudyProvider>();
-              await p.deleteSession(session.id);
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
+              Navigator.pop(contextoDialogo);
+              final provedor = contexto.read<StudyProvider>();
+              await provedor.excluirSessao(sessao.id);
+              if (contexto.mounted) {
+                ScaffoldMessenger.of(contexto).showSnackBar(
                   const SnackBar(
                     content: Text('Sessão removida do histórico.'),
                     backgroundColor: Colors.red,
